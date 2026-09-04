@@ -55,13 +55,14 @@ window.APP_CONFIG = {
 
 ## Endpoints que consume
 
-- `GET /health?check_db=true`
-- `GET /api/kpis/resumen`
-- `GET /api/tiempo/evolucion-mensual`
-- `GET /api/tarjetas/marcas`
-- `GET /api/tarjetas/credito-vs-debito`
-- `GET /api/productos/top-ingresos`
-- `GET /api/clientes/ranking`
+El dashboard consume **todas** las consultas de análisis del backend:
+
+- KPIs: `/api/kpis/resumen`
+- Tiempo: `evolucion-mensual`, `compras-por-mes`, `ingresos-por-mes`, `ranking-meses`
+- Tarjetas: `marcas`, `credito-vs-debito`, `promedio-por-tipo`, `clientes-multiples`
+- Productos: `top-ingresos`, `top-cantidad`, `categorias`, `top-por-categoria`, `sin-compras`, `precio-promedio-categoria`, `sobre-promedio-categoria`, `diferencia-precios`
+- Clientes: `ranking`, `sobre-promedio`, `sin-compras`, `top-monto`, `top-compras`, `ticket-promedio`
+- Salud: `/health?check_db=true`
 
 ## Filtros
 

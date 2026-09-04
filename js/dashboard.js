@@ -1,27 +1,9 @@
 (() => {
-  const charts = {
-    lineas: null,
-    dona: null,
-    comparativa: null,
-    barras: null,
-  };
+  const charts = {};
 
   const state = {
     activeTab: "resumen",
-    raw: {
-      kpis: null,
-      evolucion: null,
-      marcas: null,
-      creditoDebito: null,
-      tarjetasPromedioPorTipo: null,
-      tarjetasClientesMultiples: null,
-      topProductos: null,
-      topProductosCantidad: null,
-      productosCategorias: null,
-      ranking: null,
-      clientesSobrePromedio: null,
-      clientesSinCompras: null,
-    },
+    raw: {},
   };
 
   const money = (value) =>
@@ -52,7 +34,7 @@
   }
 
   function filterByMonthRange(rows, desde, hasta) {
-    return rows.filter((row) => {
+    return (rows || []).filter((row) => {
       const mes = row.mes;
       if (desde && mes < desde) return false;
       if (hasta && mes > hasta) return false;
@@ -68,8 +50,16 @@
     };
   }
 
+  function baseChart(height = 300) {
+    return {
+      height,
+      toolbar: { show: false },
+      animations: { enabled: true, speed: 700 },
+      fontFamily: "IBM Plex Sans, sans-serif",
+    };
+  }
+
   function renderKpis(kpis, evolucionFiltrada) {
-    // Si hay filtro de fechas, estimamos KPIs a partir de la serie mensual filtrada.
     const filters = getFilters();
     if ((filters.desde || filters.hasta) && evolucionFiltrada.length) {
       const monto = evolucionFiltrada.reduce((acc, r) => acc + Number(r.ingresos || 0), 0);
@@ -95,78 +85,98 @@
 
   function renderLineChart(rows) {
     destroyChart("lineas");
-    const options = {
-      chart: {
-        type: "area",
-        height: 340,
-        toolbar: { show: false },
-        animations: { enabled: true, speed: 700 },
-        fontFamily: "IBM Plex Sans, sans-serif",
-      },
-      series: [
-        {
-          name: "Ingresos (Q)",
-          data: rows.map((r) => Number(r.ingresos || 0)),
-        },
-      ],
-      xaxis: {
-        categories: rows.map((r) => r.mes),
-        labels: { rotate: -45 },
-      },
-      yaxis: {
-        labels: {
-          formatter: (v) => `Q${Math.round(v / 1000)}k`,
-        },
-      },
+    charts.lineas = new ApexCharts(document.querySelector("#chart-lineas"), {
+      chart: { type: "area", ...baseChart(340) },
+      series: [{ name: "Ingresos (Q)", data: rows.map((r) => Number(r.ingresos || 0)) }],
+      xaxis: { categories: rows.map((r) => r.mes), labels: { rotate: -45 } },
+      yaxis: { labels: { formatter: (v) => `Q${Math.round(v / 1000)}k` } },
       dataLabels: { enabled: false },
       stroke: { curve: "smooth", width: 3 },
       fill: {
         type: "gradient",
-        gradient: {
-          shadeIntensity: 0.4,
-          opacityFrom: 0.45,
-          opacityTo: 0.05,
-        },
+        gradient: { shadeIntensity: 0.4, opacityFrom: 0.45, opacityTo: 0.05 },
       },
       colors: ["#2563eb"],
       tooltip: {
         y: {
           formatter: (v, opts) => {
             const row = rows[opts.dataPointIndex];
-            const variacion =
-              row?.variacion_pct == null ? "N/D" : `${row.variacion_pct}%`;
+            const variacion = row?.variacion_pct == null ? "N/D" : `${row.variacion_pct}%`;
             return `${money(v)} · var. ${variacion}`;
           },
         },
       },
       grid: { borderColor: "#d7e0db" },
-    };
-    charts.lineas = new ApexCharts(document.querySelector("#chart-lineas"), options);
+    });
     charts.lineas.render();
 
-    const foot = document.getElementById("foot-lineas");
     if (rows.length) {
-      const promedio = rows[0].promedio_mensual;
-      foot.textContent =
-        `Fuente: /api/tiempo/evolucion-mensual · Promedio mensual ${money(promedio)} · ${rows.length} meses`;
+      document.getElementById("foot-lineas").textContent =
+        `Fuente: /api/tiempo/evolucion-mensual · Promedio mensual ${money(rows[0].promedio_mensual)} · ${rows.length} meses`;
     }
+  }
+
+  function renderComprasMes(rows) {
+    destroyChart("comprasMes");
+    charts.comprasMes = new ApexCharts(document.querySelector("#chart-compras-mes"), {
+      chart: { type: "bar", ...baseChart(280) },
+      series: [{ name: "Compras", data: rows.map((r) => Number(r.total_compras || 0)) }],
+      xaxis: { categories: rows.map((r) => r.mes), labels: { rotate: -45 } },
+      colors: ["#14b8a6"],
+      dataLabels: { enabled: false },
+      plotOptions: { bar: { borderRadius: 4, columnWidth: "55%" } },
+      tooltip: { y: { formatter: (v) => number(v) } },
+      grid: { borderColor: "#d7e0db" },
+    });
+    charts.comprasMes.render();
+  }
+
+  function renderIngresosMes(rows, extra) {
+    destroyChart("ingresosMes");
+    charts.ingresosMes = new ApexCharts(document.querySelector("#chart-ingresos-mes"), {
+      chart: { type: "bar", ...baseChart(280) },
+      series: [{ name: "Ingresos (Q)", data: rows.map((r) => Number(r.ingresos || 0)) }],
+      xaxis: { categories: rows.map((r) => r.mes), labels: { rotate: -45 } },
+      colors: ["#f59e0b"],
+      dataLabels: { enabled: false },
+      yaxis: { labels: { formatter: (v) => `Q${Math.round(v / 1000)}k` } },
+      plotOptions: { bar: { borderRadius: 4, columnWidth: "55%" } },
+      tooltip: { y: { formatter: (v) => money(v) } },
+      grid: { borderColor: "#d7e0db" },
+    });
+    charts.ingresosMes.render();
+
+    const mayor = extra?.mes_mayor_facturacion;
+    document.getElementById("foot-ingresos-mes").textContent = mayor
+      ? `Fuente: /api/tiempo/ingresos-por-mes · Mayor: ${mayor.mes} (${money(mayor.ingresos)})`
+      : "Fuente: /api/tiempo/ingresos-por-mes";
+  }
+
+  function renderRankingMeses(rows) {
+    const tbody = document.getElementById("tabla-ranking-meses");
+    tbody.innerHTML = (rows || [])
+      .map(
+        (r) => `
+      <tr>
+        <td>${r.ranking_facturacion}</td>
+        <td>${r.mes}</td>
+        <td>${number(r.total_compras)}</td>
+        <td>${money(r.ingresos)}</td>
+        <td>${r.variacion_pct == null ? "—" : `${r.variacion_pct}%`}</td>
+      </tr>`
+      )
+      .join("");
   }
 
   function renderDonut(marcas) {
     destroyChart("dona");
-    const options = {
-      chart: {
-        type: "donut",
-        height: 300,
-        fontFamily: "IBM Plex Sans, sans-serif",
-      },
+    charts.dona = new ApexCharts(document.querySelector("#chart-dona"), {
+      chart: { type: "donut", ...baseChart(300) },
       labels: marcas.map((m) => m.nombre_marca),
       series: marcas.map((m) => Number(m.participacion_pct || 0)),
       colors: ["#2563eb", "#14b8a6", "#f59e0b", "#e11d48"],
       legend: { position: "bottom" },
-      dataLabels: {
-        formatter: (val) => `${val.toFixed(1)}%`,
-      },
+      dataLabels: { formatter: (val) => `${val.toFixed(1)}%` },
       tooltip: {
         y: {
           formatter: (val, opts) => {
@@ -181,61 +191,32 @@
             size: "62%",
             labels: {
               show: true,
-              total: {
-                show: true,
-                label: "Participación",
-                formatter: () => "100%",
-              },
+              total: { show: true, label: "Participación", formatter: () => "100%" },
             },
           },
         },
       },
-    };
-    charts.dona = new ApexCharts(document.querySelector("#chart-dona"), options);
+    });
     charts.dona.render();
   }
 
   function renderComparativa(rows) {
     destroyChart("comparativa");
     const filters = getFilters();
-    let data = rows;
+    let data = rows || [];
     if (filters.tipo !== "TODOS") {
-      data = rows.filter((r) => String(r.tipo_tarjeta).toUpperCase() === filters.tipo);
+      data = data.filter((r) => String(r.tipo_tarjeta).toUpperCase() === filters.tipo);
     }
 
-    const options = {
-      chart: {
-        type: "bar",
-        height: 300,
-        toolbar: { show: false },
-        fontFamily: "IBM Plex Sans, sans-serif",
-      },
-      series: [
-        {
-          name: "Monto total (Q)",
-          data: data.map((r) => Number(r.monto_total || 0)),
-        },
-      ],
-      xaxis: {
-        categories: data.map((r) => r.tipo_tarjeta),
-      },
+    charts.comparativa = new ApexCharts(document.querySelector("#chart-comparativa"), {
+      chart: { type: "bar", ...baseChart(300) },
+      series: [{ name: "Monto total (Q)", data: data.map((r) => Number(r.monto_total || 0)) }],
+      xaxis: { categories: data.map((r) => r.tipo_tarjeta) },
       colors: ["#8b5cf6"],
-      plotOptions: {
-        bar: {
-          borderRadius: 8,
-          columnWidth: "42%",
-          distributed: true,
-        },
-      },
+      plotOptions: { bar: { borderRadius: 8, columnWidth: "42%", distributed: true } },
       legend: { show: false },
-      dataLabels: {
-        enabled: true,
-        formatter: (v) => money(v),
-        style: { fontSize: "11px" },
-      },
-      yaxis: {
-        labels: { formatter: (v) => `Q${Math.round(v / 1000)}k` },
-      },
+      dataLabels: { enabled: true, formatter: (v) => money(v), style: { fontSize: "11px" } },
+      yaxis: { labels: { formatter: (v) => `Q${Math.round(v / 1000)}k` } },
       tooltip: {
         y: {
           formatter: (val, opts) => {
@@ -245,55 +226,193 @@
         },
       },
       grid: { borderColor: "#d7e0db" },
-    };
-    charts.comparativa = new ApexCharts(
-      document.querySelector("#chart-comparativa"),
-      options
-    );
+    });
     charts.comparativa.render();
   }
 
   function renderBarras(productos) {
     destroyChart("barras");
-    const options = {
-      chart: {
-        type: "bar",
-        height: 360,
-        toolbar: { show: false },
-        fontFamily: "IBM Plex Sans, sans-serif",
-      },
-      series: [
-        {
-          name: "Ingresos (Q)",
-          data: productos.map((p) => Number(p.ingresos_generados || 0)),
-        },
-      ],
-      plotOptions: {
-        bar: {
-          horizontal: true,
-          borderRadius: 6,
-          barHeight: "70%",
-        },
-      },
+    charts.barras = new ApexCharts(document.querySelector("#chart-barras"), {
+      chart: { type: "bar", ...baseChart(360) },
+      series: [{ name: "Ingresos (Q)", data: productos.map((p) => Number(p.ingresos_generados || 0)) }],
+      plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
       dataLabels: { enabled: false },
       xaxis: {
         categories: productos.map((p) => p.nombre_producto),
         labels: { formatter: (v) => `Q${Math.round(v / 1000)}k` },
       },
       colors: ["#14b8a6"],
-      tooltip: {
-        y: { formatter: (v) => money(v) },
-      },
+      tooltip: { y: { formatter: (v) => money(v) } },
       grid: { borderColor: "#d7e0db" },
-    };
-    charts.barras = new ApexCharts(document.querySelector("#chart-barras"), options);
+    });
     charts.barras.render();
   }
 
+  function renderCategorias(categorias) {
+    destroyChart("categorias");
+    charts.categorias = new ApexCharts(document.querySelector("#chart-categorias"), {
+      chart: { type: "donut", ...baseChart(300) },
+      labels: categorias.map((c) => c.nombre_categoria),
+      series: categorias.map((c) => Number(c.monto_total || 0)),
+      colors: ["#2563eb", "#14b8a6", "#f59e0b", "#e11d48", "#8b5cf6"],
+      legend: { position: "bottom" },
+      dataLabels: { formatter: (val) => `${val.toFixed(1)}%` },
+      tooltip: { y: { formatter: (v) => money(v) } },
+    });
+    charts.categorias.render();
+  }
+
+  function renderTopCantidad(productos) {
+    destroyChart("topCantidad");
+    charts.topCantidad = new ApexCharts(document.querySelector("#chart-top-cantidad"), {
+      chart: { type: "bar", ...baseChart(360) },
+      series: [{ name: "Cantidad", data: productos.map((p) => Number(p.total_unidades || 0)) }],
+      plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
+      dataLabels: { enabled: false },
+      xaxis: { categories: productos.map((p) => p.nombre_producto) },
+      colors: ["#f59e0b"],
+      tooltip: { y: { formatter: (v) => number(v) } },
+      grid: { borderColor: "#d7e0db" },
+    });
+    charts.topCantidad.render();
+  }
+
+  function renderPrecioPromCat(rows) {
+    destroyChart("precioPromCat");
+    charts.precioPromCat = new ApexCharts(document.querySelector("#chart-precio-prom-cat"), {
+      chart: { type: "bar", ...baseChart(280) },
+      series: [{ name: "Precio promedio", data: rows.map((r) => Number(r.precio_promedio || 0)) }],
+      xaxis: { categories: rows.map((r) => r.nombre_categoria), labels: { rotate: -30 } },
+      colors: ["#0f6b4c"],
+      dataLabels: { enabled: false },
+      yaxis: { labels: { formatter: (v) => money(v) } },
+      tooltip: { y: { formatter: (v) => money(v) } },
+      grid: { borderColor: "#d7e0db" },
+    });
+    charts.precioPromCat.render();
+  }
+
+  function renderTopPorCategoria(rows) {
+    document.getElementById("tabla-top-categoria").innerHTML = (rows || [])
+      .map(
+        (r) => `
+      <tr>
+        <td>${r.nombre_categoria}</td>
+        <td>${r.nombre_producto}</td>
+        <td>${number(r.total_vendido)}</td>
+        <td>${money(r.total_ingreso)}</td>
+      </tr>`
+      )
+      .join("");
+  }
+
+  function renderSobreCat(rows) {
+    const top = (rows || []).slice(0, 15);
+    document.getElementById("tabla-sobre-cat").innerHTML = top
+      .map(
+        (r) => `
+      <tr>
+        <td>${r.nombre_producto}</td>
+        <td>${r.nombre_categoria}</td>
+        <td>${money(r.precio_sugerido)}</td>
+        <td>${money(r.diferencia)}</td>
+      </tr>`
+      )
+      .join("");
+    document.getElementById("foot-sobre-cat").textContent =
+      `Fuente: /api/productos/sobre-promedio-categoria · Mostrando ${top.length} de ${(rows || []).length}`;
+  }
+
+  function renderProdSinCompras(rows) {
+    const top = (rows || []).slice(0, 20);
+    document.getElementById("tabla-prod-sin-compras").innerHTML = top
+      .map(
+        (r) => `
+      <tr>
+        <td>${r.nombre_producto}</td>
+        <td>${r.nombre_categoria}</td>
+        <td>${money(r.precio_sugerido)}</td>
+      </tr>`
+      )
+      .join("");
+    document.getElementById("foot-prod-sin").textContent =
+      `Fuente: /api/productos/sin-compras · Mostrando ${top.length} de ${(rows || []).length}`;
+  }
+
+  function renderDiffPrecios(rows) {
+    const data = rows || [];
+    const tbody = document.getElementById("tabla-diff-precios");
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="4">Sin diferencias: el precio unitario coincide con el sugerido.</td></tr>`;
+    } else {
+      tbody.innerHTML = data
+        .map(
+          (r) => `
+        <tr>
+          <td>${r.nombre_producto}</td>
+          <td>${money(r.precio_sugerido)}</td>
+          <td>${money(r.precio_unitario_promedio)}</td>
+          <td>${money(r.diferencia_promedio)}</td>
+        </tr>`
+        )
+        .join("");
+    }
+    document.getElementById("foot-diff-precios").textContent =
+      `Fuente: /api/productos/diferencia-precios · ${data.length} diferencia(s)`;
+  }
+
+  function renderTopMonto(rows) {
+    destroyChart("topMonto");
+    charts.topMonto = new ApexCharts(document.querySelector("#chart-top-monto"), {
+      chart: { type: "bar", ...baseChart(340) },
+      series: [{ name: "Monto (Q)", data: rows.map((r) => Number(r.monto_total || 0)) }],
+      plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: rows.map((r) => r.nombre_cliente),
+        labels: { formatter: (v) => `Q${Math.round(v / 1000)}k` },
+      },
+      colors: ["#2563eb"],
+      tooltip: { y: { formatter: (v) => money(v) } },
+      grid: { borderColor: "#d7e0db" },
+    });
+    charts.topMonto.render();
+  }
+
+  function renderTopComprasClientes(rows) {
+    destroyChart("topComprasCli");
+    charts.topComprasCli = new ApexCharts(document.querySelector("#chart-top-compras"), {
+      chart: { type: "bar", ...baseChart(280) },
+      series: [{ name: "Compras", data: rows.map((r) => Number(r.num_compras || 0)) }],
+      plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
+      dataLabels: { enabled: false },
+      xaxis: { categories: rows.map((r) => r.nombre_cliente) },
+      colors: ["#c45c26"],
+      tooltip: { y: { formatter: (v) => number(v) } },
+      grid: { borderColor: "#d7e0db" },
+    });
+    charts.topComprasCli.render();
+  }
+
+  function renderTicket(rows) {
+    const top = (rows || []).slice(0, 12);
+    document.getElementById("tabla-ticket").innerHTML = top
+      .map(
+        (r) => `
+      <tr>
+        <td>${r.nombre_cliente}</td>
+        <td>${number(r.num_compras)}</td>
+        <td>${money(r.ticket_promedio)}</td>
+      </tr>`
+      )
+      .join("");
+    document.getElementById("foot-ticket").textContent =
+      `Fuente: /api/clientes/ticket-promedio · Top ${top.length} de ${(rows || []).length}`;
+  }
+
   function renderRanking(rows) {
-    const tbody = document.getElementById("tabla-ranking");
-    const top = rows.slice(0, 12);
-    tbody.innerHTML = top
+    const top = (rows || []).slice(0, 12);
+    document.getElementById("tabla-ranking").innerHTML = top
       .map(
         (r) => `
       <tr>
@@ -305,54 +424,25 @@
       )
       .join("");
     document.getElementById("foot-ranking").textContent =
-      `Fuente: /api/clientes/ranking · Mostrando top ${top.length} de ${rows.length}`;
-  }
-
-  function renderCategorias(categorias) {
-    destroyChart("categorias");
-    const options = {
-      chart: { type: "donut", height: 300, fontFamily: "IBM Plex Sans, sans-serif" },
-      labels: categorias.map((c) => c.nombre_categoria),
-      series: categorias.map((c) => Number(c.monto_total || 0)),
-      colors: ["#2563eb", "#14b8a6", "#f59e0b", "#e11d48", "#8b5cf6"],
-      legend: { position: "bottom" },
-      dataLabels: { formatter: (val) => `${val.toFixed(1)}%` },
-      tooltip: { y: { formatter: (v) => money(v) } }
-    };
-    charts.categorias = new ApexCharts(document.querySelector("#chart-categorias"), options);
-    charts.categorias.render();
-  }
-
-  function renderTopCantidad(productos) {
-    destroyChart("topCantidad");
-    const options = {
-      chart: { type: "bar", height: 360, toolbar: { show: false }, fontFamily: "IBM Plex Sans, sans-serif" },
-      series: [{ name: "Cantidad", data: productos.map((p) => Number(p.total_unidades || 0)) }],
-      plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
-      dataLabels: { enabled: false },
-      xaxis: { categories: productos.map((p) => p.nombre_producto) },
-      colors: ["#f59e0b"],
-      tooltip: { y: { formatter: (v) => number(v) } },
-      grid: { borderColor: "#d7e0db" }
-    };
-    charts.topCantidad = new ApexCharts(document.querySelector("#chart-top-cantidad"), options);
-    charts.topCantidad.render();
+      `Fuente: /api/clientes/ranking · Mostrando top ${top.length} de ${(rows || []).length}`;
   }
 
   function renderVIP(rows) {
-    const tbody = document.getElementById("tabla-vip");
-    tbody.innerHTML = (rows || []).map(r => `<tr><td>${r.nombre_cliente}</td><td>${money(r.monto_total)}</td></tr>`).join("");
+    document.getElementById("tabla-vip").innerHTML = (rows || [])
+      .map((r) => `<tr><td>${r.nombre_cliente}</td><td>${money(r.monto_total)}</td></tr>`)
+      .join("");
   }
 
   function renderInactivos(rows) {
-    const tbody = document.getElementById("tabla-inactivos");
-    tbody.innerHTML = (rows || []).map(r => `<tr><td>${r.nombre_cliente}</td><td>${r.correo || "Sin correo"}</td></tr>`).join("");
+    document.getElementById("tabla-inactivos").innerHTML = (rows || [])
+      .map((r) => `<tr><td>${r.nombre_cliente}</td><td>${r.correo || "Sin correo"}</td></tr>`)
+      .join("");
   }
 
   function renderTarjetasKpis(promedios, multiples) {
     const container = document.getElementById("tarjetas-kpis");
     let html = "";
-    (promedios || []).forEach(p => {
+    (promedios || []).forEach((p) => {
       html += `<article class="kpi"><p class="kpi__label">Promedio ${p.tipo_tarjeta}</p><p class="kpi__value" style="font-size: 1.5rem">${money(p.gasto_promedio)}</p><p class="kpi__unit">Q</p></article>`;
     });
     if ((multiples || []).length > 0) {
@@ -370,9 +460,7 @@
     const lista = [];
 
     if (marcas[0]) {
-      lista.push(
-        `${marcas[0].nombre_marca} lidera la participación con ${marcas[0].participacion_pct}% del monto.`
-      );
+      lista.push(`${marcas[0].nombre_marca} lidera la participación con ${marcas[0].participacion_pct}% del monto.`);
     }
     if (tipos[0] && tipos[1]) {
       lista.push(
@@ -380,14 +468,10 @@
       );
     }
     if (productos[0]) {
-      lista.push(
-        `Producto top por ingresos: ${productos[0].nombre_producto} (${money(productos[0].ingresos_generados)}).`
-      );
+      lista.push(`Producto top por ingresos: ${productos[0].nombre_producto} (${money(productos[0].ingresos_generados)}).`);
     }
     if (k.producto_mas_vendido) {
-      lista.push(
-        `Producto más vendido en unidades: ${k.producto_mas_vendido.nombre_producto}.`
-      );
+      lista.push(`Producto más vendido en unidades: ${k.producto_mas_vendido.nombre_producto}.`);
     }
     if (k.categoria_mayor_venta) {
       lista.push(
@@ -395,48 +479,56 @@
       );
     }
     if (evolucionFiltrada.length) {
-      const topMes = [...evolucionFiltrada].sort(
-        (a, b) => Number(b.ingresos) - Number(a.ingresos)
-      )[0];
+      const topMes = [...evolucionFiltrada].sort((a, b) => Number(b.ingresos) - Number(a.ingresos))[0];
       lista.push(`Mes de mayor facturación en la vista: ${topMes.mes} (${money(topMes.ingresos)}).`);
     }
 
-    document.getElementById("lista-hallazgos").innerHTML = lista
-      .map((item) => `<li>${item}</li>`)
-      .join("");
+    document.getElementById("lista-hallazgos").innerHTML = lista.map((item) => `<li>${item}</li>`).join("");
   }
 
   function applyView() {
     const filters = getFilters();
-    const evolucionRaw = state.raw.evolucion?.data || [];
-    const evolucion = filterByMonthRange(evolucionRaw, filters.desde, filters.hasta);
+    const evolucion = filterByMonthRange(state.raw.evolucion?.data || [], filters.desde, filters.hasta);
+    const comprasMes = filterByMonthRange(state.raw.comprasPorMes?.data || [], filters.desde, filters.hasta);
+    const ingresosMes = filterByMonthRange(state.raw.ingresosPorMes?.data || [], filters.desde, filters.hasta);
+    const rankingMeses = filterByMonthRange(state.raw.rankingMeses?.data || [], filters.desde, filters.hasta)
+      .slice()
+      .sort((a, b) => Number(a.ranking_facturacion) - Number(b.ranking_facturacion));
 
-    const isResumen = state.activeTab === "resumen";
-    const isTarjetas = state.activeTab === "tarjetas";
-    const isProductos = state.activeTab === "productos";
-    const isClientes = state.activeTab === "clientes";
+    const tab = state.activeTab;
 
-    if (isResumen) {
+    if (tab === "resumen") {
       if (state.raw.kpis) renderKpis(state.raw.kpis.data, evolucion);
       if (state.raw.evolucion) renderLineChart(evolucion);
+      if (state.raw.comprasPorMes) renderComprasMes(comprasMes);
+      if (state.raw.ingresosPorMes) renderIngresosMes(ingresosMes, state.raw.ingresosPorMes.extra);
+      if (state.raw.rankingMeses) renderRankingMeses(rankingMeses);
       if (state.raw.kpis) renderInsights(state.raw, evolucion);
     }
-    
-    if (isTarjetas) {
-      if (state.raw.marcas) renderDonut(state.raw.marcas.data);
-      if (state.raw.creditoDebito) renderComparativa(state.raw.creditoDebito.data);
+
+    if (tab === "tarjetas") {
+      if (state.raw.marcas) renderDonut(state.raw.marcas.data || []);
+      if (state.raw.creditoDebito) renderComparativa(state.raw.creditoDebito.data || []);
       if (state.raw.tarjetasPromedioPorTipo && state.raw.tarjetasClientesMultiples) {
         renderTarjetasKpis(state.raw.tarjetasPromedioPorTipo.data, state.raw.tarjetasClientesMultiples.data);
       }
     }
-    
-    if (isProductos) {
-      if (state.raw.topProductos) renderBarras(state.raw.topProductos.data);
-      if (state.raw.productosCategorias) renderCategorias(state.raw.productosCategorias.data);
-      if (state.raw.topProductosCantidad) renderTopCantidad(state.raw.topProductosCantidad.data);
+
+    if (tab === "productos") {
+      if (state.raw.topProductos) renderBarras(state.raw.topProductos.data || []);
+      if (state.raw.productosCategorias) renderCategorias(state.raw.productosCategorias.data || []);
+      if (state.raw.topProductosCantidad) renderTopCantidad(state.raw.topProductosCantidad.data || []);
+      if (state.raw.productosTopPorCategoria) renderTopPorCategoria(state.raw.productosTopPorCategoria.data);
+      if (state.raw.productosPrecioPromedioCat) renderPrecioPromCat(state.raw.productosPrecioPromedioCat.data || []);
+      if (state.raw.productosSobrePromedioCat) renderSobreCat(state.raw.productosSobrePromedioCat.data);
+      if (state.raw.productosSinCompras) renderProdSinCompras(state.raw.productosSinCompras.data);
+      if (state.raw.productosDiferenciaPrecios) renderDiffPrecios(state.raw.productosDiferenciaPrecios.data);
     }
 
-    if (isClientes) {
+    if (tab === "clientes") {
+      if (state.raw.clientesTopMonto) renderTopMonto(state.raw.clientesTopMonto.data || []);
+      if (state.raw.clientesTopCompras) renderTopComprasClientes(state.raw.clientesTopCompras.data || []);
+      if (state.raw.clientesTicketPromedio) renderTicket(state.raw.clientesTicketPromedio.data);
       if (state.raw.ranking) renderRanking(state.raw.ranking.data);
       if (state.raw.clientesSobrePromedio) renderVIP(state.raw.clientesSobrePromedio.data);
       if (state.raw.clientesSinCompras) renderInactivos(state.raw.clientesSinCompras.data);
@@ -449,63 +541,75 @@
     if (!meses.length) return;
     const desde = document.getElementById("filtro-desde");
     const hasta = document.getElementById("filtro-hasta");
-    if (!desde.min) desde.min = meses[0];
-    if (!desde.max) desde.max = meses[meses.length - 1];
-    if (!hasta.min) hasta.min = meses[0];
-    if (!hasta.max) hasta.max = meses[meses.length - 1];
+    desde.min = meses[0];
+    desde.max = meses[meses.length - 1];
+    hasta.min = meses[0];
+    hasta.max = meses[meses.length - 1];
+  }
+
+  function pushIfMissing(tasks, key, loader) {
+    if (!state.raw[key]) {
+      tasks.push(loader().then((d) => (state.raw[key] = d)));
+    }
   }
 
   async function loadTabData(tabId) {
     try {
-      document.getElementById("meta-estado").textContent = "API: cargando pestaña...";
-      
+      document.getElementById("meta-estado").textContent = "API: cargando pestaña…";
       const tasks = [];
+
       if (tabId === "resumen") {
-        if (!state.raw.kpis) tasks.push(Api.kpis().then(d => (state.raw.kpis = d)));
-        if (!state.raw.evolucion) tasks.push(Api.evolucion().then(d => { state.raw.evolucion = d; initFilterBounds(d); }));
+        pushIfMissing(tasks, "kpis", Api.kpis);
+        pushIfMissing(tasks, "evolucion", () =>
+          Api.evolucion().then((d) => {
+            initFilterBounds(d);
+            return d;
+          })
+        );
+        pushIfMissing(tasks, "comprasPorMes", Api.comprasPorMes);
+        pushIfMissing(tasks, "ingresosPorMes", Api.ingresosPorMes);
+        pushIfMissing(tasks, "rankingMeses", Api.rankingMeses);
       } else if (tabId === "tarjetas") {
-        if (!state.raw.marcas) tasks.push(Api.marcas().then(d => (state.raw.marcas = d)));
-        if (!state.raw.creditoDebito) tasks.push(Api.creditoDebito().then(d => (state.raw.creditoDebito = d)));
-        if (!state.raw.tarjetasPromedioPorTipo) tasks.push(Api.tarjetasPromedioPorTipo().then(d => (state.raw.tarjetasPromedioPorTipo = d)));
-        if (!state.raw.tarjetasClientesMultiples) tasks.push(Api.tarjetasClientesMultiples().then(d => (state.raw.tarjetasClientesMultiples = d)));
+        pushIfMissing(tasks, "marcas", Api.marcas);
+        pushIfMissing(tasks, "creditoDebito", Api.creditoDebito);
+        pushIfMissing(tasks, "tarjetasPromedioPorTipo", Api.tarjetasPromedioPorTipo);
+        pushIfMissing(tasks, "tarjetasClientesMultiples", Api.tarjetasClientesMultiples);
       } else if (tabId === "productos") {
-        if (!state.raw.topProductos) tasks.push(Api.topProductos().then(d => (state.raw.topProductos = d)));
-        if (!state.raw.topProductosCantidad) tasks.push(Api.topProductosCantidad().then(d => (state.raw.topProductosCantidad = d)));
-        if (!state.raw.productosCategorias) tasks.push(Api.productosCategorias().then(d => (state.raw.productosCategorias = d)));
+        pushIfMissing(tasks, "topProductos", Api.topProductos);
+        pushIfMissing(tasks, "topProductosCantidad", Api.topProductosCantidad);
+        pushIfMissing(tasks, "productosCategorias", Api.productosCategorias);
+        pushIfMissing(tasks, "productosTopPorCategoria", Api.productosTopPorCategoria);
+        pushIfMissing(tasks, "productosSinCompras", Api.productosSinCompras);
+        pushIfMissing(tasks, "productosPrecioPromedioCat", Api.productosPrecioPromedioCat);
+        pushIfMissing(tasks, "productosSobrePromedioCat", Api.productosSobrePromedioCat);
+        pushIfMissing(tasks, "productosDiferenciaPrecios", Api.productosDiferenciaPrecios);
       } else if (tabId === "clientes") {
-        if (!state.raw.ranking) tasks.push(Api.rankingClientes().then(d => (state.raw.ranking = d)));
-        if (!state.raw.clientesSobrePromedio) tasks.push(Api.clientesSobrePromedio().then(d => (state.raw.clientesSobrePromedio = d)));
-        if (!state.raw.clientesSinCompras) tasks.push(Api.clientesSinCompras().then(d => (state.raw.clientesSinCompras = d)));
+        pushIfMissing(tasks, "ranking", Api.rankingClientes);
+        pushIfMissing(tasks, "clientesSobrePromedio", Api.clientesSobrePromedio);
+        pushIfMissing(tasks, "clientesSinCompras", Api.clientesSinCompras);
+        pushIfMissing(tasks, "clientesTopMonto", Api.clientesTopMonto);
+        pushIfMissing(tasks, "clientesTopCompras", Api.clientesTopCompras);
+        pushIfMissing(tasks, "clientesTicketPromedio", Api.clientesTicketPromedio);
       }
 
-      if (tasks.length > 0) {
-        await Promise.all(tasks);
-      }
-      
-      document.getElementById("meta-estado").textContent = "API: activa (lazy loaded)";
+      if (tasks.length) await Promise.all(tasks);
+      document.getElementById("meta-estado").textContent = "API: activa";
       applyView();
     } catch (error) {
       console.error(error);
       document.getElementById("meta-estado").textContent = "API: error";
-      showToast("Error al cargar datos de la pestaña.");
+      showToast("Error al cargar datos. Revisa CORS y la URL del backend.");
     }
   }
 
   function switchTab(tabId) {
     state.activeTab = tabId;
-    
-    document.querySelectorAll(".tab-btn").forEach(btn => {
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.target === tabId);
     });
-
-    document.querySelectorAll("[data-tab]").forEach(el => {
-      if (el.dataset.tab === tabId) {
-        el.classList.remove("hidden");
-      } else {
-        el.classList.add("hidden");
-      }
+    document.querySelectorAll("[data-tab]").forEach((el) => {
+      el.classList.toggle("hidden", el.dataset.tab !== tabId);
     });
-
     loadTabData(tabId);
   }
 
@@ -513,9 +617,12 @@
     try {
       document.getElementById("meta-estado").textContent = "API: conectando…";
       const health = await Api.health();
-      document.getElementById("meta-estado").textContent = health.database?.ok ? "API: Oracle OK" : "API: activa";
+      document.getElementById("meta-estado").textContent = health.database?.ok
+        ? "API: Oracle OK"
+        : "API: activa";
     } catch (e) {
       document.getElementById("meta-estado").textContent = "API: error";
+      showToast("No se pudo conectar al backend en Azure.");
     }
 
     const inputDesde = document.getElementById("filtro-desde");
@@ -526,10 +633,7 @@
       inputDesde.value = "";
       inputHasta.value = "";
       document.getElementById("filtro-tipo").value = "TODOS";
-      // Restaurar los min y max que se establecieron al cargar la data
-      if (state.raw.evolucion && state.raw.evolucion.data) {
-         initFilterBounds(state.raw.evolucion);
-      }
+      if (state.raw.evolucion) initFilterBounds(state.raw.evolucion);
       applyView();
     });
 
@@ -553,10 +657,8 @@
       }
     });
 
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        switchTab(e.target.dataset.target);
-      });
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => switchTab(e.target.dataset.target));
     });
 
     switchTab("resumen");

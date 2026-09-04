@@ -93,6 +93,55 @@
         <footer class="panel__foot" id="foot-lineas">Fuente: /api/tiempo/evolucion-mensual</footer>
       </article>
 
+      <article class="panel" data-tab="resumen">
+        <header class="panel__head">
+          <div>
+            <h2>Compras por mes</h2>
+            <p class="panel__desc">Volumen de transacciones mensuales.</p>
+          </div>
+          <span class="unit">Unidad: compras</span>
+        </header>
+        <div id="chart-compras-mes" class="chart chart--sm"></div>
+        <footer class="panel__foot">Fuente: /api/tiempo/compras-por-mes</footer>
+      </article>
+
+      <article class="panel" data-tab="resumen">
+        <header class="panel__head">
+          <div>
+            <h2>Ingresos por mes</h2>
+            <p class="panel__desc">Facturación mensual y mes de mayor venta.</p>
+          </div>
+          <span class="unit">Unidad: monto (Q)</span>
+        </header>
+        <div id="chart-ingresos-mes" class="chart chart--sm"></div>
+        <footer class="panel__foot" id="foot-ingresos-mes">Fuente: /api/tiempo/ingresos-por-mes</footer>
+      </article>
+
+      <article class="panel panel--wide" data-tab="resumen">
+        <header class="panel__head">
+          <div>
+            <h2>Ranking de meses por facturación</h2>
+            <p class="panel__desc">Meses ordenados por ingresos (DENSE_RANK).</p>
+          </div>
+          <span class="unit">Unidad: ranking / monto (Q)</span>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Mes</th>
+                <th>Compras</th>
+                <th>Ingresos</th>
+                <th>Var. %</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-ranking-meses"></tbody>
+          </table>
+        </div>
+        <footer class="panel__foot">Fuente: /api/tiempo/ranking-meses</footer>
+      </article>
+
       <article class="panel" data-tab="tarjetas">
         <header class="panel__head">
           <div>
@@ -163,6 +212,160 @@
         </header>
         <div id="chart-top-cantidad" class="chart"></div>
         <footer class="panel__foot">Fuente: /api/productos/top-cantidad</footer>
+      </article>
+
+      <article class="panel panel--wide" data-tab="productos">
+        <header class="panel__head">
+          <div>
+            <h2>Producto más vendido por categoría</h2>
+            <p class="panel__desc">Líder de cada categoría con RANK() PARTITION BY.</p>
+          </div>
+          <span class="unit">Unidad: cantidad</span>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Categoría</th>
+                <th>Producto</th>
+                <th>Unidades</th>
+                <th>Ingresos</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-top-categoria"></tbody>
+          </table>
+        </div>
+        <footer class="panel__foot">Fuente: /api/productos/top-por-categoria</footer>
+      </article>
+
+      <article class="panel" data-tab="productos">
+        <header class="panel__head">
+          <div>
+            <h2>Precio promedio por categoría</h2>
+            <p class="panel__desc">Promedio de precio sugerido del catálogo.</p>
+          </div>
+          <span class="unit">Unidad: monto (Q)</span>
+        </header>
+        <div id="chart-precio-prom-cat" class="chart chart--sm"></div>
+        <footer class="panel__foot">Fuente: /api/productos/precio-promedio-categoria</footer>
+      </article>
+
+      <article class="panel" data-tab="productos">
+        <header class="panel__head">
+          <div>
+            <h2>Sobre promedio de categoría</h2>
+            <p class="panel__desc">Productos con precio sugerido mayor al promedio de su categoría.</p>
+          </div>
+          <span class="unit">Unidad: monto (Q)</span>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Categoría</th>
+                <th>Precio</th>
+                <th>Diff.</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-sobre-cat"></tbody>
+          </table>
+        </div>
+        <footer class="panel__foot" id="foot-sobre-cat">Fuente: /api/productos/sobre-promedio-categoria</footer>
+      </article>
+
+      <article class="panel" data-tab="productos">
+        <header class="panel__head">
+          <div>
+            <h2>Productos sin compras</h2>
+            <p class="panel__desc">Catálogo sin rotación en el histórico.</p>
+          </div>
+          <span class="unit">Unidad: productos</span>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Categoría</th>
+                <th>Precio sugerido</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-prod-sin-compras"></tbody>
+          </table>
+        </div>
+        <footer class="panel__foot" id="foot-prod-sin">Fuente: /api/productos/sin-compras</footer>
+      </article>
+
+      <article class="panel" data-tab="productos">
+        <header class="panel__head">
+          <div>
+            <h2>Precio sugerido vs unitario</h2>
+            <p class="panel__desc">Diferencias entre PRECIO_SUGERIDO y PRECIO_UNITARIO de venta.</p>
+          </div>
+          <span class="unit">Unidad: monto (Q)</span>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Sugerido</th>
+                <th>Unitario prom.</th>
+                <th>Diff.</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-diff-precios"></tbody>
+          </table>
+        </div>
+        <footer class="panel__foot" id="foot-diff-precios">Fuente: /api/productos/diferencia-precios</footer>
+      </article>
+
+      <article class="panel panel--wide" data-tab="clientes">
+        <header class="panel__head">
+          <div>
+            <h2>Top 10 clientes por monto</h2>
+            <p class="panel__desc">Clientes con mayor consumo acumulado.</p>
+          </div>
+          <span class="unit">Unidad: monto (Q)</span>
+        </header>
+        <div id="chart-top-monto" class="chart"></div>
+        <footer class="panel__foot">Fuente: /api/clientes/top-monto</footer>
+      </article>
+
+      <article class="panel" data-tab="clientes">
+        <header class="panel__head">
+          <div>
+            <h2>Top 10 por número de compras</h2>
+            <p class="panel__desc">Clientes más frecuentes.</p>
+          </div>
+          <span class="unit">Unidad: compras</span>
+        </header>
+        <div id="chart-top-compras" class="chart chart--sm"></div>
+        <footer class="panel__foot">Fuente: /api/clientes/top-compras</footer>
+      </article>
+
+      <article class="panel" data-tab="clientes">
+        <header class="panel__head">
+          <div>
+            <h2>Ticket promedio por cliente</h2>
+            <p class="panel__desc">Valor promedio de compra (top 12).</p>
+          </div>
+          <span class="unit">Unidad: monto (Q)</span>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Compras</th>
+                <th>Ticket prom.</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-ticket"></tbody>
+          </table>
+        </div>
+        <footer class="panel__foot" id="foot-ticket">Fuente: /api/clientes/ticket-promedio</footer>
       </article>
 
       <article class="panel panel--wide" data-tab="clientes">
