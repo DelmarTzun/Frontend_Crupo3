@@ -431,12 +431,39 @@
       document.getElementById("meta-estado").textContent = "API: error";
     }
 
+    const inputDesde = document.getElementById("filtro-desde");
+    const inputHasta = document.getElementById("filtro-hasta");
+
     document.getElementById("btn-aplicar").addEventListener("click", applyView);
     document.getElementById("btn-limpiar").addEventListener("click", () => {
-      document.getElementById("filtro-desde").value = "";
-      document.getElementById("filtro-hasta").value = "";
+      inputDesde.value = "";
+      inputHasta.value = "";
       document.getElementById("filtro-tipo").value = "TODOS";
+      // Restaurar los min y max que se establecieron al cargar la data
+      if (state.raw.evolucion && state.raw.evolucion.data) {
+         initFilterBounds(state.raw.evolucion);
+      }
       applyView();
+    });
+
+    inputDesde.addEventListener("change", (e) => {
+      if (e.target.value) {
+        inputHasta.min = e.target.value;
+        if (inputHasta.value && inputHasta.value < e.target.value) {
+          inputHasta.value = e.target.value;
+          showToast("Fecha corregida automáticamente.");
+        }
+      }
+    });
+
+    inputHasta.addEventListener("change", (e) => {
+      if (e.target.value) {
+        inputDesde.max = e.target.value;
+        if (inputDesde.value && inputDesde.value > e.target.value) {
+          inputDesde.value = e.target.value;
+          showToast("Fecha corregida automáticamente.");
+        }
+      }
     });
 
     document.querySelectorAll(".tab-btn").forEach(btn => {
