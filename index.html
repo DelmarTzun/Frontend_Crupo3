@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grupo 3 · Dashboard de Compras</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="hero__brand">
+        <p class="eyebrow">Grupo 3 · FastAPI + ApexCharts</p>
+        <h1>Análisis de Compras</h1>
+        <p class="hero__lead">
+          Dashboard interactivo sobre clientes, tarjetas, productos y evolución temporal
+          desde Oracle Database.
+        </p>
+      </div>
+      <div class="hero__meta" id="meta-intervalo">
+        <span class="meta-pill">Fuente: Oracle · DBA_COMPRAS</span>
+        <span class="meta-pill" id="meta-fechas">Intervalo: cargando…</span>
+        <span class="meta-pill" id="meta-estado">API: …</span>
+      </div>
+    </header>
+
+    <section class="filters" aria-label="Filtros del dashboard">
+      <div class="filter">
+        <label for="filtro-desde">Fecha desde</label>
+        <input type="month" id="filtro-desde" />
+      </div>
+      <div class="filter">
+        <label for="filtro-hasta">Fecha hasta</label>
+        <input type="month" id="filtro-hasta" />
+      </div>
+      <div class="filter">
+        <label for="filtro-tipo">Tipo de tarjeta</label>
+        <select id="filtro-tipo">
+          <option value="TODOS">Todos</option>
+          <option value="CREDITO">Crédito</option>
+          <option value="DEBITO">Débito</option>
+        </select>
+      </div>
+      <div class="filter filter--actions">
+        <button type="button" id="btn-aplicar" class="btn btn-primary">Aplicar filtros</button>
+        <button type="button" id="btn-limpiar" class="btn btn-ghost">Limpiar</button>
+      </div>
+    </section>
+
+    <section class="kpis" id="kpis" aria-label="Indicadores KPI">
+      <article class="kpi">
+        <p class="kpi__label">Monto total</p>
+        <p class="kpi__value" id="kpi-monto">—</p>
+        <p class="kpi__unit">Quetzales (Q)</p>
+      </article>
+      <article class="kpi">
+        <p class="kpi__label">Total de compras</p>
+        <p class="kpi__value" id="kpi-compras">—</p>
+        <p class="kpi__unit">Compras</p>
+      </article>
+      <article class="kpi">
+        <p class="kpi__label">Ticket promedio</p>
+        <p class="kpi__value" id="kpi-ticket">—</p>
+        <p class="kpi__unit">Quetzales (Q)</p>
+      </article>
+      <article class="kpi">
+        <p class="kpi__label">Clientes con compras</p>
+        <p class="kpi__value" id="kpi-clientes">—</p>
+        <p class="kpi__unit">Clientes</p>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="panel panel--wide">
+        <header class="panel__head">
+          <div>
+            <h2>Tendencia mensual de ingresos</h2>
+            <p class="panel__desc">Evolución de la facturación y variación respecto al mes anterior.</p>
+          </div>
+          <span class="unit">Unidad: monto (Q)</span>
+        </header>
+        <div id="chart-lineas" class="chart"></div>
+        <footer class="panel__foot" id="foot-lineas">Fuente: /api/tiempo/evolucion-mensual</footer>
+      </article>
+
+      <article class="panel">
+        <header class="panel__head">
+          <div>
+            <h2>Participación por marca</h2>
+            <p class="panel__desc">Distribución porcentual del monto comprado por marca de tarjeta.</p>
+          </div>
+          <span class="unit">Unidad: %</span>
+        </header>
+        <div id="chart-dona" class="chart chart--sm"></div>
+        <footer class="panel__foot">Fuente: /api/tarjetas/marcas</footer>
+      </article>
+
+      <article class="panel">
+        <header class="panel__head">
+          <div>
+            <h2>Crédito vs débito</h2>
+            <p class="panel__desc">Comparación de monto total y número de compras por tipo de tarjeta.</p>
+          </div>
+          <span class="unit">Unidad: monto (Q) / compras</span>
+        </header>
+        <div id="chart-comparativa" class="chart chart--sm"></div>
+        <footer class="panel__foot">Fuente: /api/tarjetas/credito-vs-debito</footer>
+      </article>
+
+      <article class="panel panel--wide">
+        <header class="panel__head">
+          <div>
+            <h2>Top 10 productos por ingresos</h2>
+            <p class="panel__desc">Productos que generan mayor facturación en el histórico.</p>
+          </div>
+          <span class="unit">Unidad: monto (Q)</span>
+        </header>
+        <div id="chart-barras" class="chart"></div>
+        <footer class="panel__foot">Fuente: /api/productos/top-ingresos</footer>
+      </article>
+
+      <article class="panel panel--wide">
+        <header class="panel__head">
+          <div>
+            <h2>Ranking de clientes por monto</h2>
+            <p class="panel__desc">Posición de cada cliente mediante DENSE_RANK sobre el monto total comprado.</p>
+          </div>
+          <span class="unit">Unidad: ranking / monto (Q)</span>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Cliente</th>
+                <th>Compras</th>
+                <th>Monto total</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-ranking"></tbody>
+          </table>
+        </div>
+        <footer class="panel__foot" id="foot-ranking">Fuente: /api/clientes/ranking</footer>
+      </article>
+    </section>
+
+    <section class="insights" id="insights">
+      <h2>Hallazgos principales</h2>
+      <ul id="lista-hallazgos"></ul>
+    </section>
+
+    <footer class="site-footer">
+      <p>Grupo 3 · Análisis de datos con Oracle + FastAPI + ApexCharts</p>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
