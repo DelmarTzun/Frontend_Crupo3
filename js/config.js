@@ -1,5 +1,5 @@
 // Backend desplegado en Azure App Service.
-// Para desarrollo local puedes cambiar temporalmente a: "http://127.0.0.1:8000"
+// Ahora se utilizan los "rewrites" de Vercel (vercel.json) para evitar CORS.
 window.APP_CONFIG = {
-  API_BASE: "https://backendgrupo3analisis-cpcncvc9fxbrbwc9.eastus2-01.azurewebsites.net",
+  API_BASE: "",
 };

@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "https://backendgrupo3analisis-cpcncvc9fxbrbwc9.eastus2-01.azurewebsites.net/health"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://backendgrupo3analisis-cpcncvc9fxbrbwc9.eastus2-01.azurewebsites.net/api/:path*"
+    }
+  ]
+}
