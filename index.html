@@ -117,6 +117,18 @@
         <footer class="panel__foot">Fuente: /api/tarjetas/credito-vs-debito</footer>
       </article>
 
+      <article class="panel" data-tab="tarjetas">
+        <header class="panel__head">
+          <div>
+            <h2>Métricas Adicionales</h2>
+            <p class="panel__desc">Gasto promedio e insights sobre múltiples tarjetas.</p>
+          </div>
+        </header>
+        <div class="kpi-mini-grid" id="tarjetas-kpis" style="display: grid; gap: 1rem; margin-top: 1rem;">
+           <!-- Se llenará vía JS -->
+        </div>
+      </article>
+
       <article class="panel panel--wide" data-tab="productos">
         <header class="panel__head">
           <div>
@@ -127,6 +139,30 @@
         </header>
         <div id="chart-barras" class="chart"></div>
         <footer class="panel__foot">Fuente: /api/productos/top-ingresos</footer>
+      </article>
+
+      <article class="panel" data-tab="productos">
+        <header class="panel__head">
+          <div>
+            <h2>Ventas por Categoría</h2>
+            <p class="panel__desc">Distribución porcentual del monto por categoría.</p>
+          </div>
+          <span class="unit">Unidad: %</span>
+        </header>
+        <div id="chart-categorias" class="chart chart--sm"></div>
+        <footer class="panel__foot">Fuente: /api/productos/categorias</footer>
+      </article>
+
+      <article class="panel panel--wide" data-tab="productos">
+        <header class="panel__head">
+          <div>
+            <h2>Top 10 Productos (Cantidad)</h2>
+            <p class="panel__desc">Productos más vendidos en volumen.</p>
+          </div>
+          <span class="unit">Unidad: cantidad</span>
+        </header>
+        <div id="chart-top-cantidad" class="chart"></div>
+        <footer class="panel__foot">Fuente: /api/productos/top-cantidad</footer>
       </article>
 
       <article class="panel panel--wide" data-tab="clientes">
@@ -151,6 +187,41 @@
           </table>
         </div>
         <footer class="panel__foot" id="foot-ranking">Fuente: /api/clientes/ranking</footer>
+      </article>
+      <article class="panel" data-tab="clientes">
+        <header class="panel__head">
+          <div>
+            <h2>Clientes VIP (Sobre Promedio)</h2>
+            <p class="panel__desc">Clientes cuyas compras superan el promedio general.</p>
+          </div>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Cliente</th><th>Monto Total</th></tr>
+            </thead>
+            <tbody id="tabla-vip"></tbody>
+          </table>
+        </div>
+        <footer class="panel__foot" id="foot-vip">Fuente: /api/clientes/sobre-promedio</footer>
+      </article>
+
+      <article class="panel" data-tab="clientes">
+        <header class="panel__head">
+          <div>
+            <h2>Clientes Inactivos</h2>
+            <p class="panel__desc">Clientes registrados sin compras a la fecha.</p>
+          </div>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Cliente</th><th>Correo</th></tr>
+            </thead>
+            <tbody id="tabla-inactivos"></tbody>
+          </table>
+        </div>
+        <footer class="panel__foot" id="foot-inactivos">Fuente: /api/clientes/sin-compras</footer>
       </article>
     </section>
 

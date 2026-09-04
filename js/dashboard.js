@@ -13,8 +13,14 @@
       evolucion: null,
       marcas: null,
       creditoDebito: null,
+      tarjetasPromedioPorTipo: null,
+      tarjetasClientesMultiples: null,
       topProductos: null,
+      topProductosCantidad: null,
+      productosCategorias: null,
       ranking: null,
+      clientesSobrePromedio: null,
+      clientesSinCompras: null,
     },
   };
 
@@ -302,6 +308,59 @@
       `Fuente: /api/clientes/ranking · Mostrando top ${top.length} de ${rows.length}`;
   }
 
+  function renderCategorias(categorias) {
+    destroyChart("categorias");
+    const options = {
+      chart: { type: "donut", height: 300, fontFamily: "IBM Plex Sans, sans-serif" },
+      labels: categorias.map((c) => c.nombre_categoria),
+      series: categorias.map((c) => Number(c.monto_total || 0)),
+      colors: ["#2563eb", "#14b8a6", "#f59e0b", "#e11d48", "#8b5cf6"],
+      legend: { position: "bottom" },
+      dataLabels: { formatter: (val) => `${val.toFixed(1)}%` },
+      tooltip: { y: { formatter: (v) => money(v) } }
+    };
+    charts.categorias = new ApexCharts(document.querySelector("#chart-categorias"), options);
+    charts.categorias.render();
+  }
+
+  function renderTopCantidad(productos) {
+    destroyChart("topCantidad");
+    const options = {
+      chart: { type: "bar", height: 360, toolbar: { show: false }, fontFamily: "IBM Plex Sans, sans-serif" },
+      series: [{ name: "Cantidad", data: productos.map((p) => Number(p.total_unidades || 0)) }],
+      plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
+      dataLabels: { enabled: false },
+      xaxis: { categories: productos.map((p) => p.nombre_producto) },
+      colors: ["#f59e0b"],
+      tooltip: { y: { formatter: (v) => number(v) } },
+      grid: { borderColor: "#d7e0db" }
+    };
+    charts.topCantidad = new ApexCharts(document.querySelector("#chart-top-cantidad"), options);
+    charts.topCantidad.render();
+  }
+
+  function renderVIP(rows) {
+    const tbody = document.getElementById("tabla-vip");
+    tbody.innerHTML = (rows || []).map(r => `<tr><td>${r.nombre_cliente}</td><td>${money(r.monto_total)}</td></tr>`).join("");
+  }
+
+  function renderInactivos(rows) {
+    const tbody = document.getElementById("tabla-inactivos");
+    tbody.innerHTML = (rows || []).map(r => `<tr><td>${r.nombre_cliente}</td><td>${r.correo || "Sin correo"}</td></tr>`).join("");
+  }
+
+  function renderTarjetasKpis(promedios, multiples) {
+    const container = document.getElementById("tarjetas-kpis");
+    let html = "";
+    (promedios || []).forEach(p => {
+      html += `<article class="kpi"><p class="kpi__label">Promedio ${p.tipo_tarjeta}</p><p class="kpi__value" style="font-size: 1.5rem">${money(p.gasto_promedio)}</p><p class="kpi__unit">Q</p></article>`;
+    });
+    if ((multiples || []).length > 0) {
+      html += `<article class="kpi"><p class="kpi__label">Clientes con Múltiples Tarjetas</p><p class="kpi__value" style="font-size: 1.5rem">${multiples.length}</p><p class="kpi__unit">Clientes</p></article>`;
+    }
+    container.innerHTML = html;
+  }
+
   function renderInsights(payload, evolucionFiltrada) {
     if (!payload.kpis) return;
     const k = payload.kpis.data;
@@ -352,14 +411,36 @@
     const evolucionRaw = state.raw.evolucion?.data || [];
     const evolucion = filterByMonthRange(evolucionRaw, filters.desde, filters.hasta);
 
-    if (state.raw.kpis) renderKpis(state.raw.kpis.data, evolucion);
-    if (state.raw.evolucion) renderLineChart(evolucion);
-    if (state.raw.marcas) renderDonut(state.raw.marcas.data);
-    if (state.raw.creditoDebito) renderComparativa(state.raw.creditoDebito.data);
-    if (state.raw.topProductos) renderBarras(state.raw.topProductos.data);
-    if (state.raw.ranking) renderRanking(state.raw.ranking.data);
+    const isResumen = state.activeTab === "resumen";
+    const isTarjetas = state.activeTab === "tarjetas";
+    const isProductos = state.activeTab === "productos";
+    const isClientes = state.activeTab === "clientes";
+
+    if (isResumen) {
+      if (state.raw.kpis) renderKpis(state.raw.kpis.data, evolucion);
+      if (state.raw.evolucion) renderLineChart(evolucion);
+      if (state.raw.kpis) renderInsights(state.raw, evolucion);
+    }
     
-    if (state.raw.kpis) renderInsights(state.raw, evolucion);
+    if (isTarjetas) {
+      if (state.raw.marcas) renderDonut(state.raw.marcas.data);
+      if (state.raw.creditoDebito) renderComparativa(state.raw.creditoDebito.data);
+      if (state.raw.tarjetasPromedioPorTipo && state.raw.tarjetasClientesMultiples) {
+        renderTarjetasKpis(state.raw.tarjetasPromedioPorTipo.data, state.raw.tarjetasClientesMultiples.data);
+      }
+    }
+    
+    if (isProductos) {
+      if (state.raw.topProductos) renderBarras(state.raw.topProductos.data);
+      if (state.raw.productosCategorias) renderCategorias(state.raw.productosCategorias.data);
+      if (state.raw.topProductosCantidad) renderTopCantidad(state.raw.topProductosCantidad.data);
+    }
+
+    if (isClientes) {
+      if (state.raw.ranking) renderRanking(state.raw.ranking.data);
+      if (state.raw.clientesSobrePromedio) renderVIP(state.raw.clientesSobrePromedio.data);
+      if (state.raw.clientesSinCompras) renderInactivos(state.raw.clientesSinCompras.data);
+    }
   }
 
   function initFilterBounds(evolucion) {
@@ -385,10 +466,16 @@
       } else if (tabId === "tarjetas") {
         if (!state.raw.marcas) tasks.push(Api.marcas().then(d => (state.raw.marcas = d)));
         if (!state.raw.creditoDebito) tasks.push(Api.creditoDebito().then(d => (state.raw.creditoDebito = d)));
+        if (!state.raw.tarjetasPromedioPorTipo) tasks.push(Api.tarjetasPromedioPorTipo().then(d => (state.raw.tarjetasPromedioPorTipo = d)));
+        if (!state.raw.tarjetasClientesMultiples) tasks.push(Api.tarjetasClientesMultiples().then(d => (state.raw.tarjetasClientesMultiples = d)));
       } else if (tabId === "productos") {
         if (!state.raw.topProductos) tasks.push(Api.topProductos().then(d => (state.raw.topProductos = d)));
+        if (!state.raw.topProductosCantidad) tasks.push(Api.topProductosCantidad().then(d => (state.raw.topProductosCantidad = d)));
+        if (!state.raw.productosCategorias) tasks.push(Api.productosCategorias().then(d => (state.raw.productosCategorias = d)));
       } else if (tabId === "clientes") {
         if (!state.raw.ranking) tasks.push(Api.rankingClientes().then(d => (state.raw.ranking = d)));
+        if (!state.raw.clientesSobrePromedio) tasks.push(Api.clientesSobrePromedio().then(d => (state.raw.clientesSobrePromedio = d)));
+        if (!state.raw.clientesSinCompras) tasks.push(Api.clientesSinCompras().then(d => (state.raw.clientesSinCompras = d)));
       }
 
       if (tasks.length > 0) {
