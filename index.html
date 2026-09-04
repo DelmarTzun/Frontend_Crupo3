@@ -30,20 +30,33 @@
     <nav class="tabs" aria-label="Navegación de vistas" id="tabs-nav">
       <button class="tab-btn active" data-target="resumen">Resumen General</button>
       <button class="tab-btn" data-target="tarjetas">Tarjetas</button>
-      <button class="tab-btn" data-target="productos">Productos Top</button>
+      <button class="tab-btn" data-target="productos">Productos</button>
       <button class="tab-btn" data-target="clientes">Clientes</button>
     </nav>
 
+    <nav class="subtabs hidden" id="subtabs-productos" data-tab="productos">
+      <button class="subtab-btn active" data-parent="productos" data-target="prod-top">Top Ventas</button>
+      <button class="subtab-btn" data-parent="productos" data-target="prod-categorias">Categorías</button>
+      <button class="subtab-btn" data-parent="productos" data-target="prod-precios">Precios y Catálogo</button>
+    </nav>
+
+    <nav class="subtabs hidden" id="subtabs-clientes" data-tab="clientes">
+      <button class="subtab-btn active" data-parent="clientes" data-target="cli-lideres">Líderes</button>
+      <button class="subtab-btn" data-parent="clientes" data-target="cli-analisis">Análisis</button>
+      <button class="subtab-btn" data-parent="clientes" data-target="cli-segmentacion">Segmentación</button>
+    </nav>
+
     <section class="filters" aria-label="Filtros del dashboard">
-      <div class="filter">
+      <div class="filter" data-tab="resumen">
         <label for="filtro-desde">Fecha desde</label>
         <input type="month" id="filtro-desde" />
       </div>
-      <div class="filter">
+      <div class="filter" data-tab="resumen">
         <label for="filtro-hasta">Fecha hasta</label>
         <input type="month" id="filtro-hasta" />
       </div>
-      <div class="filter">
+      
+      <div class="filter hidden" data-tab="tarjetas">
         <label for="filtro-tipo">Tipo de tarjeta</label>
         <select id="filtro-tipo">
           <option value="TODOS">Todos</option>
@@ -51,6 +64,22 @@
           <option value="DEBITO">Débito</option>
         </select>
       </div>
+
+      <div class="filter hidden" data-tab="productos clientes">
+        <label for="filtro-top">Mostrar Top N</label>
+        <select id="filtro-top">
+          <option value="10">Top 10 (por defecto)</option>
+          <option value="5">Top 5</option>
+          <option value="15">Top 15</option>
+          <option value="0">Todos</option>
+        </select>
+      </div>
+
+      <div class="filter hidden" data-tab="clientes">
+        <label for="filtro-cliente">Buscar cliente</label>
+        <input type="text" id="filtro-cliente" placeholder="Nombre..." />
+      </div>
+
       <div class="filter filter--actions">
         <button type="button" id="btn-aplicar" class="btn btn-primary">Aplicar filtros</button>
         <button type="button" id="btn-limpiar" class="btn btn-ghost">Limpiar</button>
@@ -178,7 +207,7 @@
         </div>
       </article>
 
-      <article class="panel panel--wide" data-tab="productos">
+      <article class="panel panel--wide" data-tab="productos" data-subtab="prod-top">
         <header class="panel__head">
           <div>
             <h2>Top 10 productos por ingresos</h2>
@@ -190,7 +219,7 @@
         <footer class="panel__foot">Fuente: /api/productos/top-ingresos</footer>
       </article>
 
-      <article class="panel" data-tab="productos">
+      <article class="panel" data-tab="productos" data-subtab="prod-categorias">
         <header class="panel__head">
           <div>
             <h2>Ventas por Categoría</h2>
@@ -202,7 +231,7 @@
         <footer class="panel__foot">Fuente: /api/productos/categorias</footer>
       </article>
 
-      <article class="panel panel--wide" data-tab="productos">
+      <article class="panel panel--wide" data-tab="productos" data-subtab="prod-top">
         <header class="panel__head">
           <div>
             <h2>Top 10 Productos (Cantidad)</h2>
@@ -214,7 +243,7 @@
         <footer class="panel__foot">Fuente: /api/productos/top-cantidad</footer>
       </article>
 
-      <article class="panel panel--wide" data-tab="productos">
+      <article class="panel panel--wide" data-tab="productos" data-subtab="prod-categorias">
         <header class="panel__head">
           <div>
             <h2>Producto más vendido por categoría</h2>
@@ -238,7 +267,7 @@
         <footer class="panel__foot">Fuente: /api/productos/top-por-categoria</footer>
       </article>
 
-      <article class="panel" data-tab="productos">
+      <article class="panel" data-tab="productos" data-subtab="prod-precios">
         <header class="panel__head">
           <div>
             <h2>Precio promedio por categoría</h2>
@@ -250,7 +279,7 @@
         <footer class="panel__foot">Fuente: /api/productos/precio-promedio-categoria</footer>
       </article>
 
-      <article class="panel" data-tab="productos">
+      <article class="panel" data-tab="productos" data-subtab="prod-precios">
         <header class="panel__head">
           <div>
             <h2>Sobre promedio de categoría</h2>
@@ -274,7 +303,7 @@
         <footer class="panel__foot" id="foot-sobre-cat">Fuente: /api/productos/sobre-promedio-categoria</footer>
       </article>
 
-      <article class="panel" data-tab="productos">
+      <article class="panel" data-tab="productos" data-subtab="prod-precios">
         <header class="panel__head">
           <div>
             <h2>Productos sin compras</h2>
@@ -297,7 +326,7 @@
         <footer class="panel__foot" id="foot-prod-sin">Fuente: /api/productos/sin-compras</footer>
       </article>
 
-      <article class="panel" data-tab="productos">
+      <article class="panel" data-tab="productos" data-subtab="prod-precios">
         <header class="panel__head">
           <div>
             <h2>Precio sugerido vs unitario</h2>
@@ -321,7 +350,7 @@
         <footer class="panel__foot" id="foot-diff-precios">Fuente: /api/productos/diferencia-precios</footer>
       </article>
 
-      <article class="panel panel--wide" data-tab="clientes">
+      <article class="panel panel--wide" data-tab="clientes" data-subtab="cli-lideres">
         <header class="panel__head">
           <div>
             <h2>Top 10 clientes por monto</h2>
@@ -333,7 +362,7 @@
         <footer class="panel__foot">Fuente: /api/clientes/top-monto</footer>
       </article>
 
-      <article class="panel" data-tab="clientes">
+      <article class="panel" data-tab="clientes" data-subtab="cli-lideres">
         <header class="panel__head">
           <div>
             <h2>Top 10 por número de compras</h2>
@@ -345,7 +374,7 @@
         <footer class="panel__foot">Fuente: /api/clientes/top-compras</footer>
       </article>
 
-      <article class="panel" data-tab="clientes">
+      <article class="panel" data-tab="clientes" data-subtab="cli-analisis">
         <header class="panel__head">
           <div>
             <h2>Ticket promedio por cliente</h2>
@@ -368,7 +397,7 @@
         <footer class="panel__foot" id="foot-ticket">Fuente: /api/clientes/ticket-promedio</footer>
       </article>
 
-      <article class="panel panel--wide" data-tab="clientes">
+      <article class="panel panel--wide" data-tab="clientes" data-subtab="cli-analisis">
         <header class="panel__head">
           <div>
             <h2>Ranking de clientes por monto</h2>
@@ -391,7 +420,7 @@
         </div>
         <footer class="panel__foot" id="foot-ranking">Fuente: /api/clientes/ranking</footer>
       </article>
-      <article class="panel" data-tab="clientes">
+      <article class="panel" data-tab="clientes" data-subtab="cli-segmentacion">
         <header class="panel__head">
           <div>
             <h2>Clientes VIP (Sobre Promedio)</h2>
@@ -409,7 +438,7 @@
         <footer class="panel__foot" id="foot-vip">Fuente: /api/clientes/sobre-promedio</footer>
       </article>
 
-      <article class="panel" data-tab="clientes">
+      <article class="panel" data-tab="clientes" data-subtab="cli-segmentacion">
         <header class="panel__head">
           <div>
             <h2>Clientes Inactivos</h2>

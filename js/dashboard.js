@@ -3,6 +3,7 @@
 
   const state = {
     activeTab: "resumen",
+    activeSubTabs: { productos: "prod-top", clientes: "cli-lideres" },
     raw: {},
   };
 
@@ -47,6 +48,8 @@
       desde: document.getElementById("filtro-desde").value || null,
       hasta: document.getElementById("filtro-hasta").value || null,
       tipo: document.getElementById("filtro-tipo").value || "TODOS",
+      top: parseInt(document.getElementById("filtro-top").value, 10) || 10,
+      cliente: (document.getElementById("filtro-cliente").value || "").toLowerCase().trim(),
     };
   }
 
@@ -496,6 +499,14 @@
       .sort((a, b) => Number(a.ranking_facturacion) - Number(b.ranking_facturacion));
 
     const tab = state.activeTab;
+    const applyLimit = (data, limit) => limit > 0 ? (data || []).slice(0, limit) : (data || []);
+    const filterClientes = (data) => {
+      let res = data || [];
+      if (filters.cliente) {
+        res = res.filter(r => (r.nombre_cliente || "").toLowerCase().includes(filters.cliente) || (r.correo || "").toLowerCase().includes(filters.cliente));
+      }
+      return applyLimit(res, filters.top);
+    };
 
     if (tab === "resumen") {
       if (state.raw.kpis) renderKpis(state.raw.kpis.data, evolucion);
@@ -515,23 +526,23 @@
     }
 
     if (tab === "productos") {
-      if (state.raw.topProductos) renderBarras(state.raw.topProductos.data || []);
+      if (state.raw.topProductos) renderBarras(applyLimit(state.raw.topProductos.data, filters.top));
       if (state.raw.productosCategorias) renderCategorias(state.raw.productosCategorias.data || []);
-      if (state.raw.topProductosCantidad) renderTopCantidad(state.raw.topProductosCantidad.data || []);
-      if (state.raw.productosTopPorCategoria) renderTopPorCategoria(state.raw.productosTopPorCategoria.data);
+      if (state.raw.topProductosCantidad) renderTopCantidad(applyLimit(state.raw.topProductosCantidad.data, filters.top));
+      if (state.raw.productosTopPorCategoria) renderTopPorCategoria(applyLimit(state.raw.productosTopPorCategoria.data, filters.top));
       if (state.raw.productosPrecioPromedioCat) renderPrecioPromCat(state.raw.productosPrecioPromedioCat.data || []);
-      if (state.raw.productosSobrePromedioCat) renderSobreCat(state.raw.productosSobrePromedioCat.data);
-      if (state.raw.productosSinCompras) renderProdSinCompras(state.raw.productosSinCompras.data);
-      if (state.raw.productosDiferenciaPrecios) renderDiffPrecios(state.raw.productosDiferenciaPrecios.data);
+      if (state.raw.productosSobrePromedioCat) renderSobreCat(applyLimit(state.raw.productosSobrePromedioCat.data, filters.top));
+      if (state.raw.productosSinCompras) renderProdSinCompras(applyLimit(state.raw.productosSinCompras.data, filters.top));
+      if (state.raw.productosDiferenciaPrecios) renderDiffPrecios(applyLimit(state.raw.productosDiferenciaPrecios.data, filters.top));
     }
 
     if (tab === "clientes") {
-      if (state.raw.clientesTopMonto) renderTopMonto(state.raw.clientesTopMonto.data || []);
-      if (state.raw.clientesTopCompras) renderTopComprasClientes(state.raw.clientesTopCompras.data || []);
-      if (state.raw.clientesTicketPromedio) renderTicket(state.raw.clientesTicketPromedio.data);
-      if (state.raw.ranking) renderRanking(state.raw.ranking.data);
-      if (state.raw.clientesSobrePromedio) renderVIP(state.raw.clientesSobrePromedio.data);
-      if (state.raw.clientesSinCompras) renderInactivos(state.raw.clientesSinCompras.data);
+      if (state.raw.clientesTopMonto) renderTopMonto(filterClientes(state.raw.clientesTopMonto.data));
+      if (state.raw.clientesTopCompras) renderTopComprasClientes(filterClientes(state.raw.clientesTopCompras.data));
+      if (state.raw.clientesTicketPromedio) renderTicket(filterClientes(state.raw.clientesTicketPromedio.data));
+      if (state.raw.ranking) renderRanking(filterClientes(state.raw.ranking.data));
+      if (state.raw.clientesSobrePromedio) renderVIP(filterClientes(state.raw.clientesSobrePromedio.data));
+      if (state.raw.clientesSinCompras) renderInactivos(filterClientes(state.raw.clientesSinCompras.data));
     }
   }
 
@@ -608,9 +619,34 @@
       btn.classList.toggle("active", btn.dataset.target === tabId);
     });
     document.querySelectorAll("[data-tab]").forEach((el) => {
-      el.classList.toggle("hidden", el.dataset.tab !== tabId);
+      const tabs = el.dataset.tab.split(" ");
+      const matchTab = tabs.includes(tabId);
+      let matchSubTab = true;
+      if (el.dataset.subtab && matchTab) {
+         matchSubTab = el.dataset.subtab === state.activeSubTabs[tabId];
+      }
+      el.classList.toggle("hidden", !(matchTab && matchSubTab));
     });
+    
+    if (state.activeSubTabs[tabId]) {
+      document.querySelectorAll(`#subtabs-${tabId} .subtab-btn`).forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.target === state.activeSubTabs[tabId]);
+      });
+    }
+
     loadTabData(tabId);
+  }
+
+  function switchSubTab(subTabId, parentTabId) {
+    state.activeSubTabs[parentTabId] = subTabId;
+    document.querySelectorAll(`#subtabs-${parentTabId} .subtab-btn`).forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.target === subTabId);
+    });
+    document.querySelectorAll(`article[data-tab~="${parentTabId}"]`).forEach((el) => {
+       if (el.dataset.subtab) {
+         el.classList.toggle("hidden", el.dataset.subtab !== subTabId);
+       }
+    });
   }
 
   async function init() {
@@ -633,6 +669,8 @@
       inputDesde.value = "";
       inputHasta.value = "";
       document.getElementById("filtro-tipo").value = "TODOS";
+      document.getElementById("filtro-top").value = "10";
+      document.getElementById("filtro-cliente").value = "";
       if (state.raw.evolucion) initFilterBounds(state.raw.evolucion);
       applyView();
     });
@@ -659,6 +697,10 @@
 
     document.querySelectorAll(".tab-btn").forEach((btn) => {
       btn.addEventListener("click", (e) => switchTab(e.target.dataset.target));
+    });
+
+    document.querySelectorAll(".subtab-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => switchSubTab(e.target.dataset.target, e.target.dataset.parent));
     });
 
     switchTab("resumen");

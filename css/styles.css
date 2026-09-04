@@ -124,6 +124,40 @@ body {
   border-color: var(--accent);
 }
 
+.subtabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.subtab-btn {
+  padding: 0.4rem 0.9rem;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 500;
+  font-size: 0.82rem;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.subtab-btn:hover {
+  background: rgba(15, 107, 76, 0.05);
+  color: var(--ink);
+}
+
+.subtab-btn.active {
+  background: rgba(15, 107, 76, 0.1);
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
 .filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -163,6 +197,7 @@ body {
   align-content: end;
   grid-auto-flow: column;
   grid-template-columns: 1fr 1fr;
+  grid-column: -1;
 }
 
 .btn {
