@@ -7,7 +7,15 @@
   };
 
   const state = {
-    raw: null,
+    activeTab: "resumen",
+    raw: {
+      kpis: null,
+      evolucion: null,
+      marcas: null,
+      creditoDebito: null,
+      topProductos: null,
+      ranking: null,
+    },
   };
 
   const money = (value) =>
@@ -114,7 +122,7 @@
           opacityTo: 0.05,
         },
       },
-      colors: ["#0f6b4c"],
+      colors: ["#2563eb"],
       tooltip: {
         y: {
           formatter: (v, opts) => {
@@ -148,7 +156,7 @@
       },
       labels: marcas.map((m) => m.nombre_marca),
       series: marcas.map((m) => Number(m.participacion_pct || 0)),
-      colors: ["#0f6b4c", "#c45c26", "#1d4e89", "#7a5c29"],
+      colors: ["#2563eb", "#14b8a6", "#f59e0b", "#e11d48"],
       legend: { position: "bottom" },
       dataLabels: {
         formatter: (val) => `${val.toFixed(1)}%`,
@@ -205,7 +213,7 @@
       xaxis: {
         categories: data.map((r) => r.tipo_tarjeta),
       },
-      colors: ["#c45c26"],
+      colors: ["#8b5cf6"],
       plotOptions: {
         bar: {
           borderRadius: 8,
@@ -266,7 +274,7 @@
         categories: productos.map((p) => p.nombre_producto),
         labels: { formatter: (v) => `Q${Math.round(v / 1000)}k` },
       },
-      colors: ["#1d4e89"],
+      colors: ["#14b8a6"],
       tooltip: {
         y: { formatter: (v) => money(v) },
       },
@@ -295,10 +303,11 @@
   }
 
   function renderInsights(payload, evolucionFiltrada) {
+    if (!payload.kpis) return;
     const k = payload.kpis.data;
-    const marcas = payload.marcas.data || [];
-    const tipos = payload.creditoDebito.data || [];
-    const productos = payload.topProductos.data || [];
+    const marcas = payload.marcas?.data || [];
+    const tipos = payload.creditoDebito?.data || [];
+    const productos = payload.topProductos?.data || [];
     const lista = [];
 
     if (marcas[0]) {
@@ -339,70 +348,105 @@
   }
 
   function applyView() {
-    if (!state.raw) return;
     const filters = getFilters();
-    const evolucion = filterByMonthRange(
-      state.raw.evolucion.data || [],
-      filters.desde,
-      filters.hasta
-    );
+    const evolucionRaw = state.raw.evolucion?.data || [];
+    const evolucion = filterByMonthRange(evolucionRaw, filters.desde, filters.hasta);
 
-    renderKpis(state.raw.kpis.data, evolucion);
-    renderLineChart(evolucion);
-    renderDonut(state.raw.marcas.data || []);
-    renderComparativa(state.raw.creditoDebito.data || []);
-    renderBarras(state.raw.topProductos.data || []);
-    renderRanking(state.raw.ranking.data || []);
-    renderInsights(state.raw, evolucion);
+    if (state.raw.kpis) renderKpis(state.raw.kpis.data, evolucion);
+    if (state.raw.evolucion) renderLineChart(evolucion);
+    if (state.raw.marcas) renderDonut(state.raw.marcas.data);
+    if (state.raw.creditoDebito) renderComparativa(state.raw.creditoDebito.data);
+    if (state.raw.topProductos) renderBarras(state.raw.topProductos.data);
+    if (state.raw.ranking) renderRanking(state.raw.ranking.data);
+    
+    if (state.raw.kpis) renderInsights(state.raw, evolucion);
   }
 
   function initFilterBounds(evolucion) {
+    if (!evolucion) return;
     const meses = (evolucion.data || []).map((r) => r.mes).sort();
     if (!meses.length) return;
     const desde = document.getElementById("filtro-desde");
     const hasta = document.getElementById("filtro-hasta");
-    desde.min = meses[0];
-    desde.max = meses[meses.length - 1];
-    hasta.min = meses[0];
-    hasta.max = meses[meses.length - 1];
+    if (!desde.min) desde.min = meses[0];
+    if (!desde.max) desde.max = meses[meses.length - 1];
+    if (!hasta.min) hasta.min = meses[0];
+    if (!hasta.max) hasta.max = meses[meses.length - 1];
   }
 
-  async function loadDashboard() {
+  async function loadTabData(tabId) {
     try {
-      document.getElementById("meta-estado").textContent = "API: conectando…";
-      const health = await Api.health();
-      document.getElementById("meta-estado").textContent =
-        health.database?.ok ? "API: Oracle OK" : "API: activa";
+      document.getElementById("meta-estado").textContent = "API: cargando pestaña...";
+      
+      const tasks = [];
+      if (tabId === "resumen") {
+        if (!state.raw.kpis) tasks.push(Api.kpis().then(d => (state.raw.kpis = d)));
+        if (!state.raw.evolucion) tasks.push(Api.evolucion().then(d => { state.raw.evolucion = d; initFilterBounds(d); }));
+      } else if (tabId === "tarjetas") {
+        if (!state.raw.marcas) tasks.push(Api.marcas().then(d => (state.raw.marcas = d)));
+        if (!state.raw.creditoDebito) tasks.push(Api.creditoDebito().then(d => (state.raw.creditoDebito = d)));
+      } else if (tabId === "productos") {
+        if (!state.raw.topProductos) tasks.push(Api.topProductos().then(d => (state.raw.topProductos = d)));
+      } else if (tabId === "clientes") {
+        if (!state.raw.ranking) tasks.push(Api.rankingClientes().then(d => (state.raw.ranking = d)));
+      }
 
-      const [kpis, evolucion, marcas, creditoDebito, topProductos, ranking] =
-        await Promise.all([
-          Api.kpis(),
-          Api.evolucion(),
-          Api.marcas(),
-          Api.creditoDebito(),
-          Api.topProductos(),
-          Api.rankingClientes(),
-        ]);
-
-      state.raw = { kpis, evolucion, marcas, creditoDebito, topProductos, ranking };
-      initFilterBounds(evolucion);
+      if (tasks.length > 0) {
+        await Promise.all(tasks);
+      }
+      
+      document.getElementById("meta-estado").textContent = "API: activa (lazy loaded)";
       applyView();
     } catch (error) {
       console.error(error);
       document.getElementById("meta-estado").textContent = "API: error";
-      showToast(
-        "No se pudo cargar el dashboard. Verifica que el backend esté en http://127.0.0.1:8000"
-      );
+      showToast("Error al cargar datos de la pestaña.");
     }
   }
 
-  document.getElementById("btn-aplicar").addEventListener("click", applyView);
-  document.getElementById("btn-limpiar").addEventListener("click", () => {
-    document.getElementById("filtro-desde").value = "";
-    document.getElementById("filtro-hasta").value = "";
-    document.getElementById("filtro-tipo").value = "TODOS";
-    applyView();
-  });
+  function switchTab(tabId) {
+    state.activeTab = tabId;
+    
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.target === tabId);
+    });
 
-  loadDashboard();
+    document.querySelectorAll("[data-tab]").forEach(el => {
+      if (el.dataset.tab === tabId) {
+        el.classList.remove("hidden");
+      } else {
+        el.classList.add("hidden");
+      }
+    });
+
+    loadTabData(tabId);
+  }
+
+  async function init() {
+    try {
+      document.getElementById("meta-estado").textContent = "API: conectando…";
+      const health = await Api.health();
+      document.getElementById("meta-estado").textContent = health.database?.ok ? "API: Oracle OK" : "API: activa";
+    } catch (e) {
+      document.getElementById("meta-estado").textContent = "API: error";
+    }
+
+    document.getElementById("btn-aplicar").addEventListener("click", applyView);
+    document.getElementById("btn-limpiar").addEventListener("click", () => {
+      document.getElementById("filtro-desde").value = "";
+      document.getElementById("filtro-hasta").value = "";
+      document.getElementById("filtro-tipo").value = "TODOS";
+      applyView();
+    });
+
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        switchTab(e.target.dataset.target);
+      });
+    });
+
+    switchTab("resumen");
+  }
+
+  init();
 })();

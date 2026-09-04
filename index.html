@@ -27,6 +27,12 @@
         <span class="meta-pill" id="meta-estado">API: …</span>
       </div>
     </header>
+    <nav class="tabs" aria-label="Navegación de vistas" id="tabs-nav">
+      <button class="tab-btn active" data-target="resumen">Resumen General</button>
+      <button class="tab-btn" data-target="tarjetas">Tarjetas</button>
+      <button class="tab-btn" data-target="productos">Productos Top</button>
+      <button class="tab-btn" data-target="clientes">Clientes</button>
+    </nav>
 
     <section class="filters" aria-label="Filtros del dashboard">
       <div class="filter">
@@ -51,7 +57,7 @@
       </div>
     </section>
 
-    <section class="kpis" id="kpis" aria-label="Indicadores KPI">
+    <section class="kpis" id="kpis" aria-label="Indicadores KPI" data-tab="resumen">
       <article class="kpi">
         <p class="kpi__label">Monto total</p>
         <p class="kpi__value" id="kpi-monto">—</p>
@@ -75,7 +81,7 @@
     </section>
 
     <section class="grid">
-      <article class="panel panel--wide">
+      <article class="panel panel--wide" data-tab="resumen">
         <header class="panel__head">
           <div>
             <h2>Tendencia mensual de ingresos</h2>
@@ -87,7 +93,7 @@
         <footer class="panel__foot" id="foot-lineas">Fuente: /api/tiempo/evolucion-mensual</footer>
       </article>
 
-      <article class="panel">
+      <article class="panel" data-tab="tarjetas">
         <header class="panel__head">
           <div>
             <h2>Participación por marca</h2>
@@ -99,7 +105,7 @@
         <footer class="panel__foot">Fuente: /api/tarjetas/marcas</footer>
       </article>
 
-      <article class="panel">
+      <article class="panel" data-tab="tarjetas">
         <header class="panel__head">
           <div>
             <h2>Crédito vs débito</h2>
@@ -111,7 +117,7 @@
         <footer class="panel__foot">Fuente: /api/tarjetas/credito-vs-debito</footer>
       </article>
 
-      <article class="panel panel--wide">
+      <article class="panel panel--wide" data-tab="productos">
         <header class="panel__head">
           <div>
             <h2>Top 10 productos por ingresos</h2>
@@ -123,7 +129,7 @@
         <footer class="panel__foot">Fuente: /api/productos/top-ingresos</footer>
       </article>
 
-      <article class="panel panel--wide">
+      <article class="panel panel--wide" data-tab="clientes">
         <header class="panel__head">
           <div>
             <h2>Ranking de clientes por monto</h2>
@@ -148,7 +154,7 @@
       </article>
     </section>
 
-    <section class="insights" id="insights">
+    <section class="insights" id="insights" data-tab="resumen">
       <h2>Hallazgos principales</h2>
       <ul id="lista-hallazgos"></ul>
     </section>
