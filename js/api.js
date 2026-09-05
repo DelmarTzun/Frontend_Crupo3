@@ -2,12 +2,18 @@ const Api = (() => {
   const base = () => window.APP_CONFIG?.API_BASE ?? "http://127.0.0.1:8000";
 
   async function get(path) {
-    const response = await fetch(`${base()}${path}`);
-    if (!response.ok) {
-      const detail = await response.text();
-      throw new Error(`Error ${response.status} en ${path}: ${detail}`);
+    try {
+      const response = await fetch(`${base()}${path}`);
+      if (!response.ok) {
+        const detail = await response.text();
+        console.warn(`[API] HTTP ${response.status} en ${path}: ${detail}`);
+        return null; // Graceful fallback
+      }
+      return await response.json();
+    } catch (error) {
+      console.warn(`[API] Error de red en ${path}:`, error.message);
+      return null; // Evitar que Promise.all falle
     }
-    return response.json();
   }
 
   return {

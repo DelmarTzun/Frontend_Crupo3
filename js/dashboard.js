@@ -5,6 +5,7 @@
     activeTab: "resumen",
     activeSubTabs: { productos: "prod-top", clientes: "cli-lideres" },
     raw: {},
+    filters: { desde: null, hasta: null, tipo: "TODOS", top: 10, cliente: "" },
   };
 
   const money = (value) =>
@@ -27,10 +28,12 @@
     }, 5000);
   }
 
-  function destroyChart(key) {
+  function renderChart(key, selector, options) {
     if (charts[key]) {
-      charts[key].destroy();
-      charts[key] = null;
+      charts[key].updateOptions(options);
+    } else {
+      charts[key] = new ApexCharts(document.querySelector(selector), options);
+      charts[key].render();
     }
   }
 
@@ -43,14 +46,18 @@
     });
   }
 
-  function getFilters() {
-    return {
+  function updateFiltersFromDOM() {
+    state.filters = {
       desde: document.getElementById("filtro-desde").value || null,
       hasta: document.getElementById("filtro-hasta").value || null,
       tipo: document.getElementById("filtro-tipo").value || "TODOS",
       top: parseInt(document.getElementById("filtro-top").value, 10) || 10,
       cliente: (document.getElementById("filtro-cliente").value || "").toLowerCase().trim(),
     };
+  }
+
+  function getFilters() {
+    return state.filters;
   }
 
   function baseChart(height = 300) {
@@ -87,8 +94,7 @@
   }
 
   function renderLineChart(rows) {
-    destroyChart("lineas");
-    charts.lineas = new ApexCharts(document.querySelector("#chart-lineas"), {
+    const options = {
       chart: { type: "area", ...baseChart(340) },
       series: [{ name: "Ingresos (Q)", data: rows.map((r) => Number(r.ingresos || 0)) }],
       xaxis: { categories: rows.map((r) => r.mes), labels: { rotate: -45 } },
@@ -110,8 +116,8 @@
         },
       },
       grid: { borderColor: "#d7e0db" },
-    });
-    charts.lineas.render();
+    };
+    renderChart("lineas", "#chart-lineas", options);
 
     if (rows.length) {
       document.getElementById("foot-lineas").textContent =
@@ -120,8 +126,7 @@
   }
 
   function renderComprasMes(rows) {
-    destroyChart("comprasMes");
-    charts.comprasMes = new ApexCharts(document.querySelector("#chart-compras-mes"), {
+    const options = {
       chart: { type: "bar", ...baseChart(280) },
       series: [{ name: "Compras", data: rows.map((r) => Number(r.total_compras || 0)) }],
       xaxis: { categories: rows.map((r) => r.mes), labels: { rotate: -45 } },
@@ -130,13 +135,12 @@
       plotOptions: { bar: { borderRadius: 4, columnWidth: "55%" } },
       tooltip: { y: { formatter: (v) => number(v) } },
       grid: { borderColor: "#d7e0db" },
-    });
-    charts.comprasMes.render();
+    };
+    renderChart("comprasMes", "#chart-compras-mes", options);
   }
 
   function renderIngresosMes(rows, extra) {
-    destroyChart("ingresosMes");
-    charts.ingresosMes = new ApexCharts(document.querySelector("#chart-ingresos-mes"), {
+    const options = {
       chart: { type: "bar", ...baseChart(280) },
       series: [{ name: "Ingresos (Q)", data: rows.map((r) => Number(r.ingresos || 0)) }],
       xaxis: { categories: rows.map((r) => r.mes), labels: { rotate: -45 } },
@@ -146,8 +150,8 @@
       plotOptions: { bar: { borderRadius: 4, columnWidth: "55%" } },
       tooltip: { y: { formatter: (v) => money(v) } },
       grid: { borderColor: "#d7e0db" },
-    });
-    charts.ingresosMes.render();
+    };
+    renderChart("ingresosMes", "#chart-ingresos-mes", options);
 
     const mayor = extra?.mes_mayor_facturacion;
     document.getElementById("foot-ingresos-mes").textContent = mayor
@@ -172,8 +176,7 @@
   }
 
   function renderDonut(marcas) {
-    destroyChart("dona");
-    charts.dona = new ApexCharts(document.querySelector("#chart-dona"), {
+    const options = {
       chart: { type: "donut", ...baseChart(300) },
       labels: marcas.map((m) => m.nombre_marca),
       series: marcas.map((m) => Number(m.participacion_pct || 0)),
@@ -199,19 +202,18 @@
           },
         },
       },
-    });
-    charts.dona.render();
+    };
+    renderChart("dona", "#chart-dona", options);
   }
 
   function renderComparativa(rows) {
-    destroyChart("comparativa");
     const filters = getFilters();
     let data = rows || [];
     if (filters.tipo !== "TODOS") {
       data = data.filter((r) => String(r.tipo_tarjeta).toUpperCase() === filters.tipo);
     }
 
-    charts.comparativa = new ApexCharts(document.querySelector("#chart-comparativa"), {
+    const options = {
       chart: { type: "bar", ...baseChart(300) },
       series: [{ name: "Monto total (Q)", data: data.map((r) => Number(r.monto_total || 0)) }],
       xaxis: { categories: data.map((r) => r.tipo_tarjeta) },
@@ -229,13 +231,12 @@
         },
       },
       grid: { borderColor: "#d7e0db" },
-    });
-    charts.comparativa.render();
+    };
+    renderChart("comparativa", "#chart-comparativa", options);
   }
 
   function renderBarras(productos) {
-    destroyChart("barras");
-    charts.barras = new ApexCharts(document.querySelector("#chart-barras"), {
+    const options = {
       chart: { type: "bar", ...baseChart(360) },
       series: [{ name: "Ingresos (Q)", data: productos.map((p) => Number(p.ingresos_generados || 0)) }],
       plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
@@ -247,13 +248,12 @@
       colors: ["#14b8a6"],
       tooltip: { y: { formatter: (v) => money(v) } },
       grid: { borderColor: "#d7e0db" },
-    });
-    charts.barras.render();
+    };
+    renderChart("barras", "#chart-barras", options);
   }
 
   function renderCategorias(categorias) {
-    destroyChart("categorias");
-    charts.categorias = new ApexCharts(document.querySelector("#chart-categorias"), {
+    const options = {
       chart: { type: "donut", ...baseChart(300) },
       labels: categorias.map((c) => c.nombre_categoria),
       series: categorias.map((c) => Number(c.monto_total || 0)),
@@ -261,13 +261,12 @@
       legend: { position: "bottom" },
       dataLabels: { formatter: (val) => `${val.toFixed(1)}%` },
       tooltip: { y: { formatter: (v) => money(v) } },
-    });
-    charts.categorias.render();
+    };
+    renderChart("categorias", "#chart-categorias", options);
   }
 
   function renderTopCantidad(productos) {
-    destroyChart("topCantidad");
-    charts.topCantidad = new ApexCharts(document.querySelector("#chart-top-cantidad"), {
+    const options = {
       chart: { type: "bar", ...baseChart(360) },
       series: [{ name: "Cantidad", data: productos.map((p) => Number(p.total_unidades || 0)) }],
       plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
@@ -276,13 +275,12 @@
       colors: ["#f59e0b"],
       tooltip: { y: { formatter: (v) => number(v) } },
       grid: { borderColor: "#d7e0db" },
-    });
-    charts.topCantidad.render();
+    };
+    renderChart("topCantidad", "#chart-top-cantidad", options);
   }
 
   function renderPrecioPromCat(rows) {
-    destroyChart("precioPromCat");
-    charts.precioPromCat = new ApexCharts(document.querySelector("#chart-precio-prom-cat"), {
+    const options = {
       chart: { type: "bar", ...baseChart(280) },
       series: [{ name: "Precio promedio", data: rows.map((r) => Number(r.precio_promedio || 0)) }],
       xaxis: { categories: rows.map((r) => r.nombre_categoria), labels: { rotate: -30 } },
@@ -291,8 +289,8 @@
       yaxis: { labels: { formatter: (v) => money(v) } },
       tooltip: { y: { formatter: (v) => money(v) } },
       grid: { borderColor: "#d7e0db" },
-    });
-    charts.precioPromCat.render();
+    };
+    renderChart("precioPromCat", "#chart-precio-prom-cat", options);
   }
 
   function renderTopPorCategoria(rows) {
@@ -309,9 +307,8 @@
       .join("");
   }
 
-  function renderSobreCat(rows) {
-    const top = (rows || []).slice(0, 15);
-    document.getElementById("tabla-sobre-cat").innerHTML = top
+  function renderSobreCat(data, total) {
+    document.getElementById("tabla-sobre-cat").innerHTML = (data || [])
       .map(
         (r) => `
       <tr>
@@ -323,12 +320,11 @@
       )
       .join("");
     document.getElementById("foot-sobre-cat").textContent =
-      `Fuente: /api/productos/sobre-promedio-categoria · Mostrando ${top.length} de ${(rows || []).length}`;
+      `Fuente: /api/productos/sobre-promedio-categoria · Mostrando ${(data || []).length} de ${total}`;
   }
 
-  function renderProdSinCompras(rows) {
-    const top = (rows || []).slice(0, 20);
-    document.getElementById("tabla-prod-sin-compras").innerHTML = top
+  function renderProdSinCompras(data, total) {
+    document.getElementById("tabla-prod-sin-compras").innerHTML = (data || [])
       .map(
         (r) => `
       <tr>
@@ -339,13 +335,12 @@
       )
       .join("");
     document.getElementById("foot-prod-sin").textContent =
-      `Fuente: /api/productos/sin-compras · Mostrando ${top.length} de ${(rows || []).length}`;
+      `Fuente: /api/productos/sin-compras · Mostrando ${(data || []).length} de ${total}`;
   }
 
-  function renderDiffPrecios(rows) {
-    const data = rows || [];
+  function renderDiffPrecios(data, total) {
     const tbody = document.getElementById("tabla-diff-precios");
-    if (!data.length) {
+    if (!data || !data.length) {
       tbody.innerHTML = `<tr><td colspan="4">Sin diferencias: el precio unitario coincide con el sugerido.</td></tr>`;
     } else {
       tbody.innerHTML = data
@@ -361,12 +356,11 @@
         .join("");
     }
     document.getElementById("foot-diff-precios").textContent =
-      `Fuente: /api/productos/diferencia-precios · ${data.length} diferencia(s)`;
+      `Fuente: /api/productos/diferencia-precios · Mostrando ${(data || []).length} de ${total}`;
   }
 
   function renderTopMonto(rows) {
-    destroyChart("topMonto");
-    charts.topMonto = new ApexCharts(document.querySelector("#chart-top-monto"), {
+    const options = {
       chart: { type: "bar", ...baseChart(340) },
       series: [{ name: "Monto (Q)", data: rows.map((r) => Number(r.monto_total || 0)) }],
       plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
@@ -378,13 +372,12 @@
       colors: ["#2563eb"],
       tooltip: { y: { formatter: (v) => money(v) } },
       grid: { borderColor: "#d7e0db" },
-    });
-    charts.topMonto.render();
+    };
+    renderChart("topMonto", "#chart-top-monto", options);
   }
 
   function renderTopComprasClientes(rows) {
-    destroyChart("topComprasCli");
-    charts.topComprasCli = new ApexCharts(document.querySelector("#chart-top-compras"), {
+    const options = {
       chart: { type: "bar", ...baseChart(280) },
       series: [{ name: "Compras", data: rows.map((r) => Number(r.num_compras || 0)) }],
       plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
@@ -393,13 +386,12 @@
       colors: ["#c45c26"],
       tooltip: { y: { formatter: (v) => number(v) } },
       grid: { borderColor: "#d7e0db" },
-    });
-    charts.topComprasCli.render();
+    };
+    renderChart("topComprasCli", "#chart-top-compras", options);
   }
 
-  function renderTicket(rows) {
-    const top = (rows || []).slice(0, 12);
-    document.getElementById("tabla-ticket").innerHTML = top
+  function renderTicket(data, total) {
+    document.getElementById("tabla-ticket").innerHTML = (data || [])
       .map(
         (r) => `
       <tr>
@@ -410,12 +402,11 @@
       )
       .join("");
     document.getElementById("foot-ticket").textContent =
-      `Fuente: /api/clientes/ticket-promedio · Top ${top.length} de ${(rows || []).length}`;
+      `Fuente: /api/clientes/ticket-promedio · Mostrando ${(data || []).length} de ${total}`;
   }
 
-  function renderRanking(rows) {
-    const top = (rows || []).slice(0, 12);
-    document.getElementById("tabla-ranking").innerHTML = top
+  function renderRanking(data, total) {
+    document.getElementById("tabla-ranking").innerHTML = (data || [])
       .map(
         (r) => `
       <tr>
@@ -427,7 +418,7 @@
       )
       .join("");
     document.getElementById("foot-ranking").textContent =
-      `Fuente: /api/clientes/ranking · Mostrando top ${top.length} de ${(rows || []).length}`;
+      `Fuente: /api/clientes/ranking · Mostrando ${(data || []).length} de ${total}`;
   }
 
   function renderVIP(rows) {
@@ -499,13 +490,22 @@
       .sort((a, b) => Number(a.ranking_facturacion) - Number(b.ranking_facturacion));
 
     const tab = state.activeTab;
-    const applyLimit = (data, limit) => limit > 0 ? (data || []).slice(0, limit) : (data || []);
+    
+    // Función profesional de paginación para separar los datos mostrados del total real
+    const paginate = (data, limit) => {
+      const arr = data || [];
+      return {
+        items: limit > 0 ? arr.slice(0, limit) : arr,
+        total: arr.length
+      };
+    };
+
     const filterClientes = (data) => {
       let res = data || [];
       if (filters.cliente) {
         res = res.filter(r => (r.nombre_cliente || "").toLowerCase().includes(filters.cliente) || (r.correo || "").toLowerCase().includes(filters.cliente));
       }
-      return applyLimit(res, filters.top);
+      return paginate(res, filters.top);
     };
 
     if (tab === "resumen") {
@@ -526,23 +526,38 @@
     }
 
     if (tab === "productos") {
-      if (state.raw.topProductos) renderBarras(applyLimit(state.raw.topProductos.data, filters.top));
+      if (state.raw.topProductos) renderBarras(paginate(state.raw.topProductos.data, filters.top).items);
       if (state.raw.productosCategorias) renderCategorias(state.raw.productosCategorias.data || []);
-      if (state.raw.topProductosCantidad) renderTopCantidad(applyLimit(state.raw.topProductosCantidad.data, filters.top));
-      if (state.raw.productosTopPorCategoria) renderTopPorCategoria(applyLimit(state.raw.productosTopPorCategoria.data, filters.top));
+      if (state.raw.topProductosCantidad) renderTopCantidad(paginate(state.raw.topProductosCantidad.data, filters.top).items);
+      if (state.raw.productosTopPorCategoria) renderTopPorCategoria(paginate(state.raw.productosTopPorCategoria.data, filters.top).items);
       if (state.raw.productosPrecioPromedioCat) renderPrecioPromCat(state.raw.productosPrecioPromedioCat.data || []);
-      if (state.raw.productosSobrePromedioCat) renderSobreCat(applyLimit(state.raw.productosSobrePromedioCat.data, filters.top));
-      if (state.raw.productosSinCompras) renderProdSinCompras(applyLimit(state.raw.productosSinCompras.data, filters.top));
-      if (state.raw.productosDiferenciaPrecios) renderDiffPrecios(applyLimit(state.raw.productosDiferenciaPrecios.data, filters.top));
+      if (state.raw.productosSobrePromedioCat) {
+        const pag = paginate(state.raw.productosSobrePromedioCat.data, filters.top);
+        renderSobreCat(pag.items, pag.total);
+      }
+      if (state.raw.productosSinCompras) {
+        const pag = paginate(state.raw.productosSinCompras.data, filters.top);
+        renderProdSinCompras(pag.items, pag.total);
+      }
+      if (state.raw.productosDiferenciaPrecios) {
+        const pag = paginate(state.raw.productosDiferenciaPrecios.data, filters.top);
+        renderDiffPrecios(pag.items, pag.total);
+      }
     }
 
     if (tab === "clientes") {
-      if (state.raw.clientesTopMonto) renderTopMonto(filterClientes(state.raw.clientesTopMonto.data));
-      if (state.raw.clientesTopCompras) renderTopComprasClientes(filterClientes(state.raw.clientesTopCompras.data));
-      if (state.raw.clientesTicketPromedio) renderTicket(filterClientes(state.raw.clientesTicketPromedio.data));
-      if (state.raw.ranking) renderRanking(filterClientes(state.raw.ranking.data));
-      if (state.raw.clientesSobrePromedio) renderVIP(filterClientes(state.raw.clientesSobrePromedio.data));
-      if (state.raw.clientesSinCompras) renderInactivos(filterClientes(state.raw.clientesSinCompras.data));
+      if (state.raw.clientesTopMonto) renderTopMonto(filterClientes(state.raw.clientesTopMonto.data).items);
+      if (state.raw.clientesTopCompras) renderTopComprasClientes(filterClientes(state.raw.clientesTopCompras.data).items);
+      if (state.raw.clientesTicketPromedio) {
+        const pag = filterClientes(state.raw.clientesTicketPromedio.data);
+        renderTicket(pag.items, pag.total);
+      }
+      if (state.raw.ranking) {
+        const pag = filterClientes(state.raw.ranking.data);
+        renderRanking(pag.items, pag.total);
+      }
+      if (state.raw.clientesSobrePromedio) renderVIP(filterClientes(state.raw.clientesSobrePromedio.data).items);
+      if (state.raw.clientesSinCompras) renderInactivos(filterClientes(state.raw.clientesSinCompras.data).items);
     }
   }
 
@@ -604,7 +619,15 @@
       }
 
       if (tasks.length) await Promise.all(tasks);
-      document.getElementById("meta-estado").textContent = "API: activa";
+      
+      // Si la API regresó null (por ej. si está offline o hay error de CORS/404)
+      if (state.raw.kpis === null) {
+        document.getElementById("meta-estado").textContent = "API: error (offline)";
+        showToast("Error al cargar datos. Verifica la URL del backend o que el servidor local/Vercel esté activo.");
+      } else {
+        document.getElementById("meta-estado").textContent = "API: activa";
+      }
+      
       applyView();
     } catch (error) {
       console.error(error);
@@ -650,12 +673,13 @@
   }
 
   async function init() {
+    updateFiltersFromDOM();
     try {
       document.getElementById("meta-estado").textContent = "API: conectando…";
       const health = await Api.health();
-      document.getElementById("meta-estado").textContent = health.database?.ok
+      document.getElementById("meta-estado").textContent = health?.database?.ok
         ? "API: Oracle OK"
-        : "API: activa";
+        : (health === null ? "API: error" : "API: activa");
     } catch (e) {
       document.getElementById("meta-estado").textContent = "API: error";
       showToast("No se pudo conectar al backend en Azure.");
@@ -664,7 +688,10 @@
     const inputDesde = document.getElementById("filtro-desde");
     const inputHasta = document.getElementById("filtro-hasta");
 
-    document.getElementById("btn-aplicar").addEventListener("click", applyView);
+    document.getElementById("btn-aplicar").addEventListener("click", () => {
+      updateFiltersFromDOM();
+      applyView();
+    });
     document.getElementById("btn-limpiar").addEventListener("click", () => {
       inputDesde.value = "";
       inputHasta.value = "";
@@ -672,6 +699,7 @@
       document.getElementById("filtro-top").value = "10";
       document.getElementById("filtro-cliente").value = "";
       if (state.raw.evolucion) initFilterBounds(state.raw.evolucion);
+      updateFiltersFromDOM();
       applyView();
     });
 
