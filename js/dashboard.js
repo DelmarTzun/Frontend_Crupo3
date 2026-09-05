@@ -5,7 +5,7 @@
     activeTab: "resumen",
     activeSubTabs: { productos: "prod-top", clientes: "cli-lideres" },
     raw: {},
-    filters: { desde: null, hasta: null, tipo: "TODOS", top: 10, cliente: "" },
+    filters: { desde: null, hasta: null, top: 10, cliente: "" },
   };
 
   const money = (value) =>
@@ -38,11 +38,18 @@
     }, 5000);
   }
 
-  function renderChart(key, selector, options) {
+  function destroyChart(key) {
     if (charts[key]) {
-      charts[key].updateOptions(options);
-    } else {
-      charts[key] = new ApexCharts(document.querySelector(selector), options);
+      charts[key].destroy();
+      charts[key] = null;
+    }
+  }
+
+  function renderChart(key, selector, options) {
+    destroyChart(key);
+    const el = document.querySelector(selector);
+    if (el) {
+      charts[key] = new ApexCharts(el, options);
       charts[key].render();
     }
   }
@@ -58,16 +65,16 @@
 
   function updateFiltersFromDOM() {
     state.filters = {
-      desde: document.getElementById("filtro-desde").value || null,
-      hasta: document.getElementById("filtro-hasta").value || null,
-      tipo: document.getElementById("filtro-tipo").value || "TODOS",
-      top: parseInt(document.getElementById("filtro-top").value, 10) || 10,
-      cliente: (document.getElementById("filtro-cliente").value || "").toLowerCase().trim(),
+      desde: document.getElementById("filtro-desde")?.value || null,
+      hasta: document.getElementById("filtro-hasta")?.value || null,
+      top: parseInt(document.getElementById("filtro-top")?.value, 10) || 10,
+      cliente: (document.getElementById("filtro-cliente")?.value || "").toLowerCase().trim(),
     };
+    return state.filters;
   }
 
   function getFilters() {
-    return state.filters;
+    return updateFiltersFromDOM();
   }
 
   function baseChart(height = 300) {
@@ -104,7 +111,8 @@
   }
 
   function renderLineChart(rows) {
-    const options = {
+    destroyChart("lineas");
+    charts.lineas = new ApexCharts(document.querySelector("#chart-lineas"), {
       chart: { type: "area", ...baseChart(340) },
       series: [{ name: "Ingresos (Q)", data: rows.map((r) => Number(r.ingresos || 0)) }],
       xaxis: { categories: rows.map((r) => r.mes), labels: { rotate: -45 } },
@@ -126,8 +134,8 @@
         },
       },
       grid: { borderColor: "#d7e0db" },
-    };
-    renderChart("lineas", "#chart-lineas", options);
+    });
+    charts.lineas.render();
 
     if (rows.length) {
       document.getElementById("foot-lineas").textContent =
@@ -136,7 +144,8 @@
   }
 
   function renderComprasMes(rows) {
-    const options = {
+    destroyChart("comprasMes");
+    charts.comprasMes = new ApexCharts(document.querySelector("#chart-compras-mes"), {
       chart: { type: "bar", ...baseChart(280) },
       series: [{ name: "Compras", data: rows.map((r) => Number(r.total_compras || 0)) }],
       xaxis: { categories: rows.map((r) => r.mes), labels: { rotate: -45 } },
@@ -145,12 +154,13 @@
       plotOptions: { bar: { borderRadius: 4, columnWidth: "55%" } },
       tooltip: { y: { formatter: (v) => number(v) } },
       grid: { borderColor: "#d7e0db" },
-    };
-    renderChart("comprasMes", "#chart-compras-mes", options);
+    });
+    charts.comprasMes.render();
   }
 
   function renderIngresosMes(rows, extra) {
-    const options = {
+    destroyChart("ingresosMes");
+    charts.ingresosMes = new ApexCharts(document.querySelector("#chart-ingresos-mes"), {
       chart: { type: "bar", ...baseChart(280) },
       series: [{ name: "Ingresos (Q)", data: rows.map((r) => Number(r.ingresos || 0)) }],
       xaxis: { categories: rows.map((r) => r.mes), labels: { rotate: -45 } },
@@ -160,8 +170,8 @@
       plotOptions: { bar: { borderRadius: 4, columnWidth: "55%" } },
       tooltip: { y: { formatter: (v) => money(v) } },
       grid: { borderColor: "#d7e0db" },
-    };
-    renderChart("ingresosMes", "#chart-ingresos-mes", options);
+    });
+    charts.ingresosMes.render();
 
     const mayor = extra?.mes_mayor_facturacion;
     document.getElementById("foot-ingresos-mes").textContent = mayor
@@ -186,7 +196,8 @@
   }
 
   function renderDonut(marcas) {
-    const options = {
+    destroyChart("dona");
+    charts.dona = new ApexCharts(document.querySelector("#chart-dona"), {
       chart: { type: "donut", ...baseChart(380) },
       labels: marcas.map((m) => m.nombre_marca),
       series: marcas.map((m) => Number(m.participacion_pct || 0)),
@@ -228,14 +239,15 @@
           },
         },
       },
-    };
-    renderChart("dona", "#chart-dona", options);
+    });
+    charts.dona.render();
   }
 
   function renderComparativa(rows) {
+    destroyChart("comparativa");
     const data = rows || [];
 
-    const options = {
+    charts.comparativa = new ApexCharts(document.querySelector("#chart-comparativa"), {
       chart: { type: "bar", ...baseChart(380) },
       series: [{ name: "Monto total (Q)", data: data.map((r) => Number(r.monto_total || 0)) }],
       xaxis: {
@@ -261,12 +273,13 @@
         },
       },
       grid: { borderColor: "#d7e0db" },
-    };
-    renderChart("comparativa", "#chart-comparativa", options);
+    });
+    charts.comparativa.render();
   }
 
   function renderBarras(productos) {
-    const options = {
+    destroyChart("barras");
+    charts.barras = new ApexCharts(document.querySelector("#chart-barras"), {
       chart: { type: "bar", ...baseChart(360) },
       series: [{ name: "Ingresos (Q)", data: productos.map((p) => Number(p.ingresos_generados || 0)) }],
       plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
@@ -278,12 +291,13 @@
       colors: ["#14b8a6"],
       tooltip: { y: { formatter: (v) => money(v) } },
       grid: { borderColor: "#d7e0db" },
-    };
-    renderChart("barras", "#chart-barras", options);
+    });
+    charts.barras.render();
   }
 
   function renderCategorias(categorias) {
-    const options = {
+    destroyChart("categorias");
+    charts.categorias = new ApexCharts(document.querySelector("#chart-categorias"), {
       chart: { type: "donut", ...baseChart(420) },
       labels: categorias.map((c) => c.nombre_categoria),
       series: categorias.map((c) => Number(c.monto_total || 0)),
@@ -333,12 +347,13 @@
           },
         },
       },
-    };
-    renderChart("categorias", "#chart-categorias", options);
+    });
+    charts.categorias.render();
   }
 
   function renderTopCantidad(productos) {
-    const options = {
+    destroyChart("topCantidad");
+    charts.topCantidad = new ApexCharts(document.querySelector("#chart-top-cantidad"), {
       chart: { type: "bar", ...baseChart(360) },
       series: [{ name: "Cantidad", data: productos.map((p) => Number(p.total_unidades || 0)) }],
       plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
@@ -347,12 +362,13 @@
       colors: ["#f59e0b"],
       tooltip: { y: { formatter: (v) => number(v) } },
       grid: { borderColor: "#d7e0db" },
-    };
-    renderChart("topCantidad", "#chart-top-cantidad", options);
+    });
+    charts.topCantidad.render();
   }
 
   function renderPrecioPromCat(rows) {
-    const options = {
+    destroyChart("precioPromCat");
+    charts.precioPromCat = new ApexCharts(document.querySelector("#chart-precio-prom-cat"), {
       chart: { type: "bar", ...baseChart(360) },
       series: [{ name: "Precio promedio (Q)", data: rows.map((r) => Number(r.precio_promedio || 0)) }],
       plotOptions: {
@@ -388,8 +404,8 @@
         },
       },
       grid: { borderColor: "#d7e0db" },
-    };
-    renderChart("precioPromCat", "#chart-precio-prom-cat", options);
+    });
+    charts.precioPromCat.render();
   }
 
   function renderTopPorCategoria(rows) {
@@ -804,13 +820,7 @@
       .sort((a, b) => Number(a.ranking_facturacion) - Number(b.ranking_facturacion));
 
     const tab = state.activeTab;
-    const applyLimit = (data, limit) => {
-      const arr = data || [];
-      return {
-        items: limit > 0 ? arr.slice(0, limit) : arr,
-        total: arr.length
-      };
-    };
+    const applyLimit = (data, limit) => limit > 0 ? (data || []).slice(0, limit) : (data || []);
     const deduplicateByName = (data) => {
       const seen = new Set();
       return (data || []).filter((r) => {
@@ -961,10 +971,15 @@
       }
 
       if (tasks.length) await Promise.all(tasks);
-      
-      if (state.raw.kpis === null) {
+
+      const tabFailed = (tabId === "resumen" && state.raw.kpis === null) ||
+                        (tabId === "tarjetas" && state.raw.marcas === null) ||
+                        (tabId === "productos" && state.raw.topProductos === null) ||
+                        (tabId === "clientes" && state.raw.ranking === null);
+
+      if (tabFailed) {
         document.getElementById("meta-estado").textContent = "API: error (offline)";
-        showToast("Error al cargar datos. Verifica la URL del backend o que el servidor local/Vercel esté activo.");
+        showToast("Error al cargar datos. Verifica la conexión con el backend.");
       } else {
         document.getElementById("meta-estado").textContent = "API: activa";
       }
@@ -1017,9 +1032,9 @@
     try {
       document.getElementById("meta-estado").textContent = "API: conectando…";
       const health = await Api.health();
-      document.getElementById("meta-estado").textContent = health.database?.ok
+      document.getElementById("meta-estado").textContent = health?.database?.ok
         ? "API: Oracle OK"
-        : "API: activa";
+        : (health === null ? "API: error" : "API: activa");
     } catch (e) {
       document.getElementById("meta-estado").textContent = "API: error";
       showToast("No se pudo conectar al backend en Azure.");
