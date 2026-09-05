@@ -46,7 +46,7 @@
       <button class="subtab-btn" data-parent="clientes" data-target="cli-segmentacion">Segmentación</button>
     </nav>
 
-    <section class="filters" aria-label="Filtros del dashboard">
+    <section class="filters" aria-label="Filtros del dashboard" data-tab="resumen productos clientes">
       <div class="filter" data-tab="resumen">
         <label for="filtro-desde">Fecha desde</label>
         <input type="month" id="filtro-desde" />
@@ -55,23 +55,12 @@
         <label for="filtro-hasta">Fecha hasta</label>
         <input type="month" id="filtro-hasta" />
       </div>
-      
-      <div class="filter hidden" data-tab="tarjetas">
-        <label for="filtro-tipo">Tipo de tarjeta</label>
-        <select id="filtro-tipo">
-          <option value="TODOS">Todos</option>
-          <option value="CREDITO">Crédito</option>
-          <option value="DEBITO">Débito</option>
-        </select>
-      </div>
 
       <div class="filter hidden" data-tab="productos clientes">
         <label for="filtro-top">Mostrar Top N</label>
         <select id="filtro-top">
           <option value="10">Top 10 (por defecto)</option>
           <option value="5">Top 5</option>
-          <option value="15">Top 15</option>
-          <option value="0">Todos</option>
         </select>
       </div>
 
@@ -80,7 +69,7 @@
         <input type="text" id="filtro-cliente" placeholder="Nombre..." />
       </div>
 
-      <div class="filter filter--actions">
+      <div class="filter filter--actions" data-tab="resumen productos clientes">
         <button type="button" id="btn-aplicar" class="btn btn-primary">Aplicar filtros</button>
         <button type="button" id="btn-limpiar" class="btn btn-ghost">Limpiar</button>
       </div>
@@ -171,7 +160,7 @@
         <footer class="panel__foot">Fuente: /api/tiempo/ranking-meses</footer>
       </article>
 
-      <article class="panel" data-tab="tarjetas">
+      <article class="panel panel--centered" data-tab="tarjetas">
         <header class="panel__head">
           <div>
             <h2>Participación por marca</h2>
@@ -179,11 +168,11 @@
           </div>
           <span class="unit">Unidad: %</span>
         </header>
-        <div id="chart-dona" class="chart chart--sm"></div>
+        <div id="chart-dona" class="chart chart--lg chart-center"></div>
         <footer class="panel__foot">Fuente: /api/tarjetas/marcas</footer>
       </article>
 
-      <article class="panel" data-tab="tarjetas">
+      <article class="panel panel--centered" data-tab="tarjetas">
         <header class="panel__head">
           <div>
             <h2>Crédito vs débito</h2>
@@ -191,18 +180,18 @@
           </div>
           <span class="unit">Unidad: monto (Q) / compras</span>
         </header>
-        <div id="chart-comparativa" class="chart chart--sm"></div>
+        <div id="chart-comparativa" class="chart chart--lg chart-center"></div>
         <footer class="panel__foot">Fuente: /api/tarjetas/credito-vs-debito</footer>
       </article>
 
-      <article class="panel" data-tab="tarjetas">
+      <article class="panel panel--centered" data-tab="tarjetas">
         <header class="panel__head">
           <div>
             <h2>Métricas Adicionales</h2>
             <p class="panel__desc">Gasto promedio e insights sobre múltiples tarjetas.</p>
           </div>
         </header>
-        <div class="kpi-mini-grid" id="tarjetas-kpis" style="display: grid; gap: 1rem; margin-top: 1rem;">
+        <div class="kpi-mini-grid" id="tarjetas-kpis">
            <!-- Se llenará vía JS -->
         </div>
       </article>
@@ -219,7 +208,7 @@
         <footer class="panel__foot">Fuente: /api/productos/top-ingresos</footer>
       </article>
 
-      <article class="panel" data-tab="productos" data-subtab="prod-categorias">
+      <article class="panel panel--centered" data-tab="productos" data-subtab="prod-categorias">
         <header class="panel__head">
           <div>
             <h2>Ventas por Categoría</h2>
@@ -227,7 +216,7 @@
           </div>
           <span class="unit">Unidad: %</span>
         </header>
-        <div id="chart-categorias" class="chart chart--sm"></div>
+        <div id="chart-categorias" class="chart chart--lg chart-center"></div>
         <footer class="panel__foot">Fuente: /api/productos/categorias</footer>
       </article>
 
@@ -267,15 +256,15 @@
         <footer class="panel__foot">Fuente: /api/productos/top-por-categoria</footer>
       </article>
 
-      <article class="panel" data-tab="productos" data-subtab="prod-precios">
+      <article class="panel panel--wide" data-tab="productos" data-subtab="prod-precios">
         <header class="panel__head">
           <div>
             <h2>Precio promedio por categoría</h2>
-            <p class="panel__desc">Promedio de precio sugerido del catálogo.</p>
+            <p class="panel__desc">Promedio de precio sugerido del catálogo ordenado de mayor a menor.</p>
           </div>
           <span class="unit">Unidad: monto (Q)</span>
         </header>
-        <div id="chart-precio-prom-cat" class="chart chart--sm"></div>
+        <div id="chart-precio-prom-cat" class="chart"></div>
         <footer class="panel__foot">Fuente: /api/productos/precio-promedio-categoria</footer>
       </article>
 
@@ -287,7 +276,7 @@
           </div>
           <span class="unit">Unidad: monto (Q)</span>
         </header>
-        <div class="table-wrap" aria-live="polite">
+        <div class="table-wrap table-wrap--scroll" aria-live="polite">
           <table>
             <thead>
               <tr>
@@ -307,11 +296,11 @@
         <header class="panel__head">
           <div>
             <h2>Productos sin compras</h2>
-            <p class="panel__desc">Catálogo sin rotación en el histórico.</p>
+            <p class="panel__desc">Catálogo sin rotación en el histórico de compras.</p>
           </div>
           <span class="unit">Unidad: productos</span>
         </header>
-        <div class="table-wrap" aria-live="polite">
+        <div class="table-wrap table-wrap--scroll" aria-live="polite">
           <table>
             <thead>
               <tr>
@@ -326,52 +315,40 @@
         <footer class="panel__foot" id="foot-prod-sin">Fuente: /api/productos/sin-compras</footer>
       </article>
 
-      <article class="panel" data-tab="productos" data-subtab="prod-precios">
+      <article class="panel panel--wide" data-tab="productos" data-subtab="prod-precios">
         <header class="panel__head">
           <div>
             <h2>Precio sugerido vs unitario</h2>
-            <p class="panel__desc">Diferencias entre PRECIO_SUGERIDO y PRECIO_UNITARIO de venta.</p>
+            <p class="panel__desc">Auditoría entre PRECIO_SUGERIDO de catálogo y PRECIO_UNITARIO de venta.</p>
           </div>
           <span class="unit">Unidad: monto (Q)</span>
         </header>
-        <div class="table-wrap" aria-live="polite">
-          <table>
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Sugerido</th>
-                <th>Unitario prom.</th>
-                <th>Diff.</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-diff-precios"></tbody>
-          </table>
-        </div>
+        <div id="diff-precios-container" aria-live="polite"></div>
         <footer class="panel__foot" id="foot-diff-precios">Fuente: /api/productos/diferencia-precios</footer>
       </article>
 
       <article class="panel panel--wide" data-tab="clientes" data-subtab="cli-lideres">
         <header class="panel__head">
           <div>
-            <h2>Top 10 clientes por monto</h2>
+            <h2 id="titulo-top-monto">Top 10 clientes por monto</h2>
             <p class="panel__desc">Clientes con mayor consumo acumulado.</p>
           </div>
           <span class="unit">Unidad: monto (Q)</span>
         </header>
         <div id="chart-top-monto" class="chart"></div>
-        <footer class="panel__foot">Fuente: /api/clientes/top-monto</footer>
+        <footer class="panel__foot" id="foot-top-monto">Fuente: /api/clientes/top-monto</footer>
       </article>
 
-      <article class="panel" data-tab="clientes" data-subtab="cli-lideres">
+      <article class="panel panel--wide" data-tab="clientes" data-subtab="cli-lideres">
         <header class="panel__head">
           <div>
-            <h2>Top 10 por número de compras</h2>
+            <h2 id="titulo-top-compras">Top 10 por número de compras</h2>
             <p class="panel__desc">Clientes más frecuentes.</p>
           </div>
           <span class="unit">Unidad: compras</span>
         </header>
-        <div id="chart-top-compras" class="chart chart--sm"></div>
-        <footer class="panel__foot">Fuente: /api/clientes/top-compras</footer>
+        <div id="chart-top-compras" class="chart"></div>
+        <footer class="panel__foot" id="foot-top-compras">Fuente: /api/clientes/top-compras</footer>
       </article>
 
       <article class="panel" data-tab="clientes" data-subtab="cli-analisis">
@@ -382,7 +359,7 @@
           </div>
           <span class="unit">Unidad: monto (Q)</span>
         </header>
-        <div class="table-wrap" aria-live="polite">
+        <div class="table-wrap table-wrap--scroll" aria-live="polite">
           <table>
             <thead>
               <tr>
@@ -400,12 +377,12 @@
       <article class="panel panel--wide" data-tab="clientes" data-subtab="cli-analisis">
         <header class="panel__head">
           <div>
-            <h2>Ranking de clientes por monto</h2>
-            <p class="panel__desc">Posición de cada cliente mediante DENSE_RANK sobre el monto total comprado.</p>
+            <h2>Ranking general de clientes por monto</h2>
+            <p class="panel__desc">Posición de cada cliente con compras mediante DENSE_RANK sobre el monto total comprado.</p>
           </div>
           <span class="unit">Unidad: ranking / monto (Q)</span>
         </header>
-        <div class="table-wrap" aria-live="polite">
+        <div class="table-wrap table-wrap--scroll" aria-live="polite">
           <table>
             <thead>
               <tr>
@@ -420,6 +397,30 @@
         </div>
         <footer class="panel__foot" id="foot-ranking">Fuente: /api/clientes/ranking</footer>
       </article>
+
+      <article class="panel panel--wide" data-tab="clientes" data-subtab="cli-analisis">
+        <header class="panel__head">
+          <div>
+            <h2>Ticket promedio por cliente</h2>
+            <p class="panel__desc">Valor promedio de compra por cliente.</p>
+          </div>
+          <span class="unit">Unidad: monto (Q)</span>
+        </header>
+        <div class="table-wrap table-wrap--scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Compras</th>
+                <th>Ticket prom.</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-ticket"></tbody>
+          </table>
+        </div>
+        <footer class="panel__foot" id="foot-ticket">Fuente: /api/clientes/ticket-promedio</footer>
+      </article>
+
       <article class="panel" data-tab="clientes" data-subtab="cli-segmentacion">
         <header class="panel__head">
           <div>
@@ -427,7 +428,7 @@
             <p class="panel__desc">Clientes cuyas compras superan el promedio general.</p>
           </div>
         </header>
-        <div class="table-wrap" aria-live="polite">
+        <div class="table-wrap table-wrap--scroll" aria-live="polite">
           <table>
             <thead>
               <tr><th>Cliente</th><th>Monto Total</th></tr>
@@ -445,7 +446,7 @@
             <p class="panel__desc">Clientes registrados sin compras a la fecha.</p>
           </div>
         </header>
-        <div class="table-wrap" aria-live="polite">
+        <div class="table-wrap table-wrap--scroll" aria-live="polite">
           <table>
             <thead>
               <tr><th>Cliente</th><th>Correo</th></tr>

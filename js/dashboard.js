@@ -18,6 +18,16 @@
   const number = (value) =>
     new Intl.NumberFormat("es-GT").format(Number(value || 0));
 
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   function showToast(message) {
     const toast = document.getElementById("toast");
     toast.hidden = false;
@@ -177,12 +187,19 @@
 
   function renderDonut(marcas) {
     const options = {
-      chart: { type: "donut", ...baseChart(300) },
+      chart: { type: "donut", ...baseChart(380) },
       labels: marcas.map((m) => m.nombre_marca),
       series: marcas.map((m) => Number(m.participacion_pct || 0)),
       colors: ["#2563eb", "#14b8a6", "#f59e0b", "#e11d48"],
-      legend: { position: "bottom" },
-      dataLabels: { formatter: (val) => `${val.toFixed(1)}%` },
+      legend: {
+        position: "bottom",
+        fontSize: "13px",
+        itemMargin: { horizontal: 12, vertical: 6 },
+      },
+      dataLabels: {
+        formatter: (val) => `${val.toFixed(1)}%`,
+        style: { fontSize: "13px", fontWeight: "600" },
+      },
       tooltip: {
         y: {
           formatter: (val, opts) => {
@@ -194,10 +211,19 @@
       plotOptions: {
         pie: {
           donut: {
-            size: "62%",
+            size: "65%",
             labels: {
               show: true,
-              total: { show: true, label: "Participación", formatter: () => "100%" },
+              total: {
+                show: true,
+                label: "Participación",
+                formatter: () => "100%",
+                style: { fontSize: "15px", fontWeight: "600" },
+              },
+              value: {
+                fontSize: "20px",
+                fontWeight: "700",
+              },
             },
           },
         },
@@ -207,21 +233,25 @@
   }
 
   function renderComparativa(rows) {
-    const filters = getFilters();
-    let data = rows || [];
-    if (filters.tipo !== "TODOS") {
-      data = data.filter((r) => String(r.tipo_tarjeta).toUpperCase() === filters.tipo);
-    }
+    const data = rows || [];
 
     const options = {
-      chart: { type: "bar", ...baseChart(300) },
+      chart: { type: "bar", ...baseChart(380) },
       series: [{ name: "Monto total (Q)", data: data.map((r) => Number(r.monto_total || 0)) }],
-      xaxis: { categories: data.map((r) => r.tipo_tarjeta) },
+      xaxis: {
+        categories: data.map((r) => r.tipo_tarjeta),
+        labels: { style: { fontSize: "13px", fontWeight: "600" } },
+      },
       colors: ["#8b5cf6"],
-      plotOptions: { bar: { borderRadius: 8, columnWidth: "42%", distributed: true } },
+      plotOptions: { bar: { borderRadius: 8, columnWidth: "32%", distributed: true } },
       legend: { show: false },
-      dataLabels: { enabled: true, formatter: (v) => money(v), style: { fontSize: "11px" } },
-      yaxis: { labels: { formatter: (v) => `Q${Math.round(v / 1000)}k` } },
+      dataLabels: { enabled: true, formatter: (v) => money(v), style: { fontSize: "12px", fontWeight: "600" } },
+      yaxis: {
+        labels: {
+          formatter: (v) => `Q${Math.round(v / 1000)}k`,
+          style: { fontSize: "12px" },
+        },
+      },
       tooltip: {
         y: {
           formatter: (val, opts) => {
@@ -254,13 +284,55 @@
 
   function renderCategorias(categorias) {
     const options = {
-      chart: { type: "donut", ...baseChart(300) },
+      chart: { type: "donut", ...baseChart(420) },
       labels: categorias.map((c) => c.nombre_categoria),
       series: categorias.map((c) => Number(c.monto_total || 0)),
-      colors: ["#2563eb", "#14b8a6", "#f59e0b", "#e11d48", "#8b5cf6"],
-      legend: { position: "bottom" },
-      dataLabels: { formatter: (val) => `${val.toFixed(1)}%` },
-      tooltip: { y: { formatter: (v) => money(v) } },
+      colors: [
+        "#2563eb", "#14b8a6", "#f59e0b", "#e11d48", "#8b5cf6",
+        "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#6366f1", "#10b981"
+      ],
+      legend: {
+        position: "bottom",
+        fontSize: "13px",
+        itemMargin: { horizontal: 10, vertical: 6 },
+      },
+      dataLabels: {
+        formatter: (val) => `${val.toFixed(1)}%`,
+        style: { fontSize: "12px", fontWeight: "600" },
+      },
+      tooltip: {
+        y: {
+          formatter: (val, opts) => {
+            const cat = categorias[opts.seriesIndex];
+            const units = cat?.total_unidades ? ` · ${number(cat.total_unidades)} unidades` : "";
+            return `${money(val)}${units}`;
+          },
+        },
+      },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: "65%",
+            labels: {
+              show: true,
+              total: {
+                show: true,
+                label: "Total Ventas",
+                formatter: (w) => {
+                  const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                  return money(total);
+                },
+                style: { fontSize: "14px", fontWeight: "600" },
+              },
+              value: {
+                fontSize: "19px",
+                fontWeight: "700",
+                formatter: (v) => money(v),
+              },
+            },
+          },
+        },
+      },
     };
     renderChart("categorias", "#chart-categorias", options);
   }
@@ -281,13 +353,40 @@
 
   function renderPrecioPromCat(rows) {
     const options = {
-      chart: { type: "bar", ...baseChart(280) },
-      series: [{ name: "Precio promedio", data: rows.map((r) => Number(r.precio_promedio || 0)) }],
-      xaxis: { categories: rows.map((r) => r.nombre_categoria), labels: { rotate: -30 } },
+      chart: { type: "bar", ...baseChart(360) },
+      series: [{ name: "Precio promedio (Q)", data: rows.map((r) => Number(r.precio_promedio || 0)) }],
+      plotOptions: {
+        bar: {
+          borderRadius: 6,
+          columnWidth: "45%",
+          distributed: false,
+        },
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: (v) => money(v),
+        style: { fontSize: "11px", fontWeight: "600" },
+        offsetY: -20,
+      },
+      xaxis: {
+        categories: rows.map((r) => r.nombre_categoria),
+        labels: {
+          rotate: -20,
+          rotateAlways: false,
+          style: { fontSize: "12px", fontWeight: "500" },
+        },
+      },
       colors: ["#0f6b4c"],
-      dataLabels: { enabled: false },
       yaxis: { labels: { formatter: (v) => money(v) } },
-      tooltip: { y: { formatter: (v) => money(v) } },
+      tooltip: {
+        y: {
+          formatter: (v, opts) => {
+            const cat = rows[opts.dataPointIndex];
+            const num = cat?.num_productos ? ` · ${cat.num_productos} productos en catálogo` : "";
+            return `${money(v)}${num}`;
+          },
+        },
+      },
       grid: { borderColor: "#d7e0db" },
     };
     renderChart("precioPromCat", "#chart-precio-prom-cat", options);
@@ -307,130 +406,345 @@
       .join("");
   }
 
-  function renderSobreCat(data, total) {
-    document.getElementById("tabla-sobre-cat").innerHTML = (data || [])
+  function renderSobreCat(rows) {
+    const list = rows || [];
+    document.getElementById("tabla-sobre-cat").innerHTML = list
       .map(
         (r) => `
       <tr>
-        <td>${r.nombre_producto}</td>
+        <td><strong>${r.nombre_producto}</strong></td>
         <td>${r.nombre_categoria}</td>
         <td>${money(r.precio_sugerido)}</td>
-        <td>${money(r.diferencia)}</td>
+        <td><span class="badge-diff">+${money(r.diferencia)}</span></td>
       </tr>`
       )
       .join("");
     document.getElementById("foot-sobre-cat").textContent =
-      `Fuente: /api/productos/sobre-promedio-categoria · Mostrando ${(data || []).length} de ${total}`;
+      `Fuente: /api/productos/sobre-promedio-categoria · Mostrando ${list.length} producto(s)`;
   }
 
-  function renderProdSinCompras(data, total) {
-    document.getElementById("tabla-prod-sin-compras").innerHTML = (data || [])
+  function renderProdSinCompras(rows) {
+    const list = rows || [];
+    document.getElementById("tabla-prod-sin-compras").innerHTML = list
       .map(
         (r) => `
       <tr>
-        <td>${r.nombre_producto}</td>
+        <td><strong>${r.nombre_producto}</strong></td>
         <td>${r.nombre_categoria}</td>
         <td>${money(r.precio_sugerido)}</td>
       </tr>`
       )
       .join("");
     document.getElementById("foot-prod-sin").textContent =
-      `Fuente: /api/productos/sin-compras · Mostrando ${(data || []).length} de ${total}`;
+      `Fuente: /api/productos/sin-compras · Mostrando ${list.length} de ${state.raw.productosSinCompras?.data?.length || list.length} sin rotación`;
   }
 
-  function renderDiffPrecios(data, total) {
-    const tbody = document.getElementById("tabla-diff-precios");
-    if (!data || !data.length) {
-      tbody.innerHTML = `<tr><td colspan="4">Sin diferencias: el precio unitario coincide con el sugerido.</td></tr>`;
+  function renderDiffPrecios(rows) {
+    const data = rows || [];
+    const container = document.getElementById("diff-precios-container");
+    if (!container) return;
+
+    if (!data.length) {
+      container.innerHTML = `
+        <div class="audit-card">
+          <div class="audit-card__icon">✓</div>
+          <div class="audit-card__content">
+            <h3>Precios 100% alineados con el catálogo</h3>
+            <p>Auditoría satisfactoria: En todas las compras históricas (<code>TBL_DET_COMPRAS</code>), el precio unitario cobrado coincide exactamente con el precio sugerido en <code>TBL_PRODUCTOS</code> (0 diferencias encontradas).</p>
+          </div>
+        </div>
+      `;
     } else {
-      tbody.innerHTML = data
-        .map(
-          (r) => `
-        <tr>
-          <td>${r.nombre_producto}</td>
-          <td>${money(r.precio_sugerido)}</td>
-          <td>${money(r.precio_unitario_promedio)}</td>
-          <td>${money(r.diferencia_promedio)}</td>
-        </tr>`
-        )
-        .join("");
+      container.innerHTML = `
+        <div class="table-wrap table-wrap--scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Sugerido</th>
+                <th>Unitario prom.</th>
+                <th>Diff.</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map((r) => `
+                <tr>
+                  <td><strong>${r.nombre_producto}</strong></td>
+                  <td>${money(r.precio_sugerido)}</td>
+                  <td>${money(r.precio_unitario_promedio)}</td>
+                  <td>${money(r.diferencia_promedio)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
     }
     document.getElementById("foot-diff-precios").textContent =
-      `Fuente: /api/productos/diferencia-precios · Mostrando ${(data || []).length} de ${total}`;
+      `Fuente: /api/productos/diferencia-precios · ${data.length} discrepancia(s)`;
   }
 
-  function renderTopMonto(rows) {
-    const options = {
-      chart: { type: "bar", ...baseChart(340) },
-      series: [{ name: "Monto (Q)", data: rows.map((r) => Number(r.monto_total || 0)) }],
-      plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
-      dataLabels: { enabled: false },
+  function renderTopMonto(rows, filters) {
+    destroyChart("topMonto");
+    const container = document.querySelector("#chart-top-monto");
+    if (!container) return;
+
+    const topN = filters?.top || 10;
+    const titleEl = document.getElementById("titulo-top-monto");
+    if (titleEl) titleEl.textContent = `Top ${topN} clientes por monto`;
+
+    if (filters?.cliente && (!rows || rows.length === 0)) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-state__icon">🔍</span>
+          <p><strong>El cliente "${escapeHtml(filters.cliente)}" no se encuentra dentro del Top ${topN} por monto.</strong></p>
+          <p class="empty-state__hint">Puedes buscarlo en la sub-pestaña <strong>Análisis</strong> en el <em>Ranking general de clientes</em>, donde se listan todos los clientes con compras.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = "";
+    charts.topMonto = new ApexCharts(container, {
+      chart: { type: "bar", ...baseChart(360) },
+      series: [{ name: "Monto total (Q)", data: rows.map((r) => Number(r.monto_total || 0)) }],
+      plotOptions: {
+        bar: {
+          horizontal: true,
+          borderRadius: 6,
+          barHeight: "65%",
+        },
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: (v) => money(v),
+        style: { fontSize: "11px", fontWeight: "600" },
+      },
       xaxis: {
         categories: rows.map((r) => r.nombre_cliente),
         labels: { formatter: (v) => `Q${Math.round(v / 1000)}k` },
       },
+      yaxis: {
+        labels: {
+          maxWidth: 260,
+          style: { fontSize: "12px", fontWeight: "600" },
+        },
+      },
       colors: ["#2563eb"],
-      tooltip: { y: { formatter: (v) => money(v) } },
+      tooltip: {
+        y: {
+          formatter: (v, opts) => {
+            const row = rows[opts.dataPointIndex];
+            const num = row?.num_compras ? ` · ${number(row.num_compras)} compras` : "";
+            return `${money(v)}${num}`;
+          },
+        },
+      },
       grid: { borderColor: "#d7e0db" },
-    };
-    renderChart("topMonto", "#chart-top-monto", options);
+    });
+    charts.topMonto.render();
   }
 
-  function renderTopComprasClientes(rows) {
-    const options = {
-      chart: { type: "bar", ...baseChart(280) },
+  function renderTopComprasClientes(rows, filters) {
+    destroyChart("topComprasCli");
+    const container = document.querySelector("#chart-top-compras");
+    if (!container) return;
+
+    const topN = filters?.top || 10;
+    const titleEl = document.getElementById("titulo-top-compras");
+    if (titleEl) titleEl.textContent = `Top ${topN} por número de compras`;
+
+    if (filters?.cliente && (!rows || rows.length === 0)) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-state__icon">🔍</span>
+          <p><strong>El cliente "${escapeHtml(filters.cliente)}" no se encuentra dentro del Top ${topN} por número de compras.</strong></p>
+          <p class="empty-state__hint">Puedes consultar su posición y volumen total en la sub-pestaña <strong>Análisis</strong>.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = "";
+    charts.topComprasCli = new ApexCharts(container, {
+      chart: { type: "bar", ...baseChart(360) },
       series: [{ name: "Compras", data: rows.map((r) => Number(r.num_compras || 0)) }],
-      plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "70%" } },
-      dataLabels: { enabled: false },
-      xaxis: { categories: rows.map((r) => r.nombre_cliente) },
+      plotOptions: {
+        bar: {
+          horizontal: true,
+          borderRadius: 6,
+          barHeight: "65%",
+        },
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: (v) => `${number(v)} compras`,
+        style: { fontSize: "11px", fontWeight: "600" },
+      },
+      xaxis: {
+        categories: rows.map((r) => r.nombre_cliente),
+        labels: { formatter: (v) => number(v) },
+      },
+      yaxis: {
+        labels: {
+          maxWidth: 260,
+          style: { fontSize: "12px", fontWeight: "600" },
+        },
+      },
       colors: ["#c45c26"],
-      tooltip: { y: { formatter: (v) => number(v) } },
+      tooltip: {
+        y: {
+          formatter: (v, opts) => {
+            const row = rows[opts.dataPointIndex];
+            const total = row?.monto_total ? ` · Monto ${money(row.monto_total)}` : "";
+            return `${number(v)} compras${total}`;
+          },
+        },
+      },
       grid: { borderColor: "#d7e0db" },
-    };
-    renderChart("topComprasCli", "#chart-top-compras", options);
+    });
+    charts.topComprasCli.render();
   }
 
-  function renderTicket(data, total) {
-    document.getElementById("tabla-ticket").innerHTML = (data || [])
+  function renderTicket(rows, filters) {
+    const list = rows || [];
+    const tbody = document.getElementById("tabla-ticket");
+    if (!tbody) return;
+
+    if (!list.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="3" class="td-empty">
+            <div class="table-empty-notice">
+              <span>🔍</span>
+              <div>
+                <strong>No se encontraron registros de ticket promedio con "${escapeHtml(filters?.cliente || "")}".</strong>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
+      document.getElementById("foot-ticket").textContent =
+        `Fuente: /api/clientes/ticket-promedio · 0 resultados`;
+      return;
+    }
+
+    tbody.innerHTML = list
       .map(
         (r) => `
       <tr>
-        <td>${r.nombre_cliente}</td>
-        <td>${number(r.num_compras)}</td>
+        <td><strong>${r.nombre_cliente}</strong></td>
+        <td>${number(r.num_compras)} compras</td>
         <td>${money(r.ticket_promedio)}</td>
       </tr>`
       )
       .join("");
     document.getElementById("foot-ticket").textContent =
-      `Fuente: /api/clientes/ticket-promedio · Mostrando ${(data || []).length} de ${total}`;
+      `Fuente: /api/clientes/ticket-promedio · Mostrando ${list.length} de ${state.raw.clientesTicketPromedio?.data?.length || list.length}`;
   }
 
-  function renderRanking(data, total) {
-    document.getElementById("tabla-ranking").innerHTML = (data || [])
+  function renderRanking(rows, filters) {
+    const list = rows || [];
+    const tbody = document.getElementById("tabla-ranking");
+    if (!tbody) return;
+
+    if (!list.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="4" class="td-empty">
+            <div class="table-empty-notice">
+              <span>🔍</span>
+              <div>
+                <strong>No se encontró ningún cliente en el ranking con "${escapeHtml(filters?.cliente || "")}".</strong>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
+      document.getElementById("foot-ranking").textContent =
+        `Fuente: /api/clientes/ranking · 0 coincidencias de ${state.raw.ranking?.data?.length || 0} clientes`;
+      return;
+    }
+
+    tbody.innerHTML = list
       .map(
         (r) => `
       <tr>
-        <td>${r.ranking}</td>
-        <td>${r.nombre_cliente}</td>
+        <td><span class="badge-diff">#${r.ranking}</span></td>
+        <td><strong>${r.nombre_cliente}</strong></td>
         <td>${number(r.num_compras)}</td>
         <td>${money(r.monto_total)}</td>
       </tr>`
       )
       .join("");
     document.getElementById("foot-ranking").textContent =
-      `Fuente: /api/clientes/ranking · Mostrando ${(data || []).length} de ${total}`;
+      `Fuente: /api/clientes/ranking · Mostrando ${list.length} de ${state.raw.ranking?.data?.length || list.length} clientes en el ranking`;
   }
 
-  function renderVIP(rows) {
-    document.getElementById("tabla-vip").innerHTML = (rows || [])
-      .map((r) => `<tr><td>${r.nombre_cliente}</td><td>${money(r.monto_total)}</td></tr>`)
+  function renderVIP(rows, filters) {
+    const tbody = document.getElementById("tabla-vip");
+    if (!tbody) return;
+    const list = rows || [];
+
+    if (!list.length) {
+      if (filters?.cliente) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="2" class="td-empty">
+              <div class="table-empty-notice">
+                <span>⚠️</span>
+                <div>
+                  <strong>El cliente "${escapeHtml(filters.cliente)}" no califica como Cliente VIP.</strong>
+                  <p>Su consumo acumulado no supera el promedio general de compras.</p>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        tbody.innerHTML = `<tr><td colspan="2" class="td-empty">No hay clientes VIP registrados.</td></tr>`;
+      }
+      return;
+    }
+
+    tbody.innerHTML = list
+      .map((r) => `<tr><td><strong>${r.nombre_cliente}</strong></td><td>${money(r.monto_total)}</td></tr>`)
       .join("");
+    document.getElementById("foot-vip").textContent =
+      `Fuente: /api/clientes/sobre-promedio · ${list.length} de ${state.raw.clientesSobrePromedio?.data?.length || list.length} cliente(s) VIP`;
   }
 
-  function renderInactivos(rows) {
-    document.getElementById("tabla-inactivos").innerHTML = (rows || [])
-      .map((r) => `<tr><td>${r.nombre_cliente}</td><td>${r.correo || "Sin correo"}</td></tr>`)
+  function renderInactivos(rows, filters) {
+    const tbody = document.getElementById("tabla-inactivos");
+    if (!tbody) return;
+    const list = rows || [];
+
+    if (!list.length) {
+      if (filters?.cliente) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="2" class="td-empty">
+              <div class="table-empty-notice">
+                <span>ℹ️</span>
+                <div>
+                  <strong>El cliente "${escapeHtml(filters.cliente)}" no figura como Cliente Inactivo.</strong>
+                  <p>Cuenta con compras registradas en el histórico o no existe en la base de datos.</p>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        tbody.innerHTML = `<tr><td colspan="2" class="td-empty">No hay clientes inactivos.</td></tr>`;
+      }
+      return;
+    }
+
+    tbody.innerHTML = list
+      .map((r) => `<tr><td><strong>${r.nombre_cliente}</strong></td><td>${r.correo || "Sin correo"}</td></tr>`)
       .join("");
+    document.getElementById("foot-inactivos").textContent =
+      `Fuente: /api/clientes/sin-compras · ${list.length} de ${state.raw.clientesSinCompras?.data?.length || list.length} inactivo(s)`;
   }
 
   function renderTarjetasKpis(promedios, multiples) {
@@ -490,22 +804,28 @@
       .sort((a, b) => Number(a.ranking_facturacion) - Number(b.ranking_facturacion));
 
     const tab = state.activeTab;
-    
-    // Función profesional de paginación para separar los datos mostrados del total real
-    const paginate = (data, limit) => {
+    const applyLimit = (data, limit) => {
       const arr = data || [];
       return {
         items: limit > 0 ? arr.slice(0, limit) : arr,
         total: arr.length
       };
     };
-
+    const deduplicateByName = (data) => {
+      const seen = new Set();
+      return (data || []).filter((r) => {
+        const key = `${r.nombre_producto || ""}|${r.nombre_categoria || ""}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    };
     const filterClientes = (data) => {
       let res = data || [];
       if (filters.cliente) {
         res = res.filter(r => (r.nombre_cliente || "").toLowerCase().includes(filters.cliente) || (r.correo || "").toLowerCase().includes(filters.cliente));
       }
-      return paginate(res, filters.top);
+      return applyLimit(res, filters.top);
     };
 
     if (tab === "resumen") {
@@ -526,38 +846,60 @@
     }
 
     if (tab === "productos") {
-      if (state.raw.topProductos) renderBarras(paginate(state.raw.topProductos.data, filters.top).items);
+      if (state.raw.topProductos) renderBarras(applyLimit(state.raw.topProductos.data, filters.top));
       if (state.raw.productosCategorias) renderCategorias(state.raw.productosCategorias.data || []);
-      if (state.raw.topProductosCantidad) renderTopCantidad(paginate(state.raw.topProductosCantidad.data, filters.top).items);
-      if (state.raw.productosTopPorCategoria) renderTopPorCategoria(paginate(state.raw.productosTopPorCategoria.data, filters.top).items);
+      if (state.raw.topProductosCantidad) renderTopCantidad(applyLimit(state.raw.topProductosCantidad.data, filters.top));
+      if (state.raw.productosTopPorCategoria) renderTopPorCategoria(applyLimit(state.raw.productosTopPorCategoria.data, filters.top));
       if (state.raw.productosPrecioPromedioCat) renderPrecioPromCat(state.raw.productosPrecioPromedioCat.data || []);
       if (state.raw.productosSobrePromedioCat) {
-        const pag = paginate(state.raw.productosSobrePromedioCat.data, filters.top);
-        renderSobreCat(pag.items, pag.total);
+        renderSobreCat(applyLimit(deduplicateByName(state.raw.productosSobrePromedioCat.data), filters.top));
       }
       if (state.raw.productosSinCompras) {
-        const pag = paginate(state.raw.productosSinCompras.data, filters.top);
-        renderProdSinCompras(pag.items, pag.total);
+        renderProdSinCompras(applyLimit(deduplicateByName(state.raw.productosSinCompras.data), filters.top));
       }
-      if (state.raw.productosDiferenciaPrecios) {
-        const pag = paginate(state.raw.productosDiferenciaPrecios.data, filters.top);
-        renderDiffPrecios(pag.items, pag.total);
-      }
+      if (state.raw.productosDiferenciaPrecios) renderDiffPrecios(applyLimit(state.raw.productosDiferenciaPrecios.data, filters.top));
     }
 
     if (tab === "clientes") {
-      if (state.raw.clientesTopMonto) renderTopMonto(filterClientes(state.raw.clientesTopMonto.data).items);
-      if (state.raw.clientesTopCompras) renderTopComprasClientes(filterClientes(state.raw.clientesTopCompras.data).items);
-      if (state.raw.clientesTicketPromedio) {
-        const pag = filterClientes(state.raw.clientesTicketPromedio.data);
-        renderTicket(pag.items, pag.total);
+      const topN = filters.top || 10;
+      const matchSearch = (r) => {
+        if (!filters.cliente) return true;
+        const query = filters.cliente;
+        return (r.nombre_cliente || "").toLowerCase().includes(query) ||
+               (r.correo || "").toLowerCase().includes(query);
+      };
+
+      // 1. Líderes: evalúa sobre el Top N y detecta si la búsqueda coincide en el Top
+      if (state.raw.clientesTopMonto) {
+        const topMonto = (state.raw.clientesTopMonto.data || []).slice(0, topN);
+        const filteredMonto = filters.cliente ? topMonto.filter(matchSearch) : topMonto;
+        renderTopMonto(filteredMonto, filters);
       }
+      if (state.raw.clientesTopCompras) {
+        const topCompras = (state.raw.clientesTopCompras.data || []).slice(0, topN);
+        const filteredCompras = filters.cliente ? topCompras.filter(matchSearch) : topCompras;
+        renderTopComprasClientes(filteredCompras, filters);
+      }
+
+      // 2. Análisis: muestra el ranking completo sin recortar y permite buscar por nombre
       if (state.raw.ranking) {
-        const pag = filterClientes(state.raw.ranking.data);
-        renderRanking(pag.items, pag.total);
+        const rankingFiltered = (state.raw.ranking.data || []).filter(matchSearch);
+        renderRanking(rankingFiltered, filters);
       }
-      if (state.raw.clientesSobrePromedio) renderVIP(filterClientes(state.raw.clientesSobrePromedio.data).items);
-      if (state.raw.clientesSinCompras) renderInactivos(filterClientes(state.raw.clientesSinCompras.data).items);
+      if (state.raw.clientesTicketPromedio) {
+        const ticketFiltered = (state.raw.clientesTicketPromedio.data || []).filter(matchSearch);
+        renderTicket(ticketFiltered, filters);
+      }
+
+      // 3. Segmentación: muestra VIPs e Inactivos completos, o mensaje explicativo al buscar
+      if (state.raw.clientesSobrePromedio) {
+        const vipFiltered = (state.raw.clientesSobrePromedio.data || []).filter(matchSearch);
+        renderVIP(vipFiltered, filters);
+      }
+      if (state.raw.clientesSinCompras) {
+        const inactivosFiltered = (state.raw.clientesSinCompras.data || []).filter(matchSearch);
+        renderInactivos(inactivosFiltered, filters);
+      }
     }
   }
 
@@ -620,14 +962,12 @@
 
       if (tasks.length) await Promise.all(tasks);
       
-      // Si la API regresó null (por ej. si está offline o hay error de CORS/404)
       if (state.raw.kpis === null) {
         document.getElementById("meta-estado").textContent = "API: error (offline)";
         showToast("Error al cargar datos. Verifica la URL del backend o que el servidor local/Vercel esté activo.");
       } else {
         document.getElementById("meta-estado").textContent = "API: activa";
       }
-      
       applyView();
     } catch (error) {
       console.error(error);
@@ -677,9 +1017,9 @@
     try {
       document.getElementById("meta-estado").textContent = "API: conectando…";
       const health = await Api.health();
-      document.getElementById("meta-estado").textContent = health?.database?.ok
+      document.getElementById("meta-estado").textContent = health.database?.ok
         ? "API: Oracle OK"
-        : (health === null ? "API: error" : "API: activa");
+        : "API: activa";
     } catch (e) {
       document.getElementById("meta-estado").textContent = "API: error";
       showToast("No se pudo conectar al backend en Azure.");
@@ -687,15 +1027,24 @@
 
     const inputDesde = document.getElementById("filtro-desde");
     const inputHasta = document.getElementById("filtro-hasta");
+    const inputCliente = document.getElementById("filtro-cliente");
 
     document.getElementById("btn-aplicar").addEventListener("click", () => {
       updateFiltersFromDOM();
       applyView();
     });
+    if (inputCliente) {
+      inputCliente.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          updateFiltersFromDOM();
+          applyView();
+        }
+      });
+    }
     document.getElementById("btn-limpiar").addEventListener("click", () => {
       inputDesde.value = "";
       inputHasta.value = "";
-      document.getElementById("filtro-tipo").value = "TODOS";
       document.getElementById("filtro-top").value = "10";
       document.getElementById("filtro-cliente").value = "";
       if (state.raw.evolucion) initFilterBounds(state.raw.evolucion);
